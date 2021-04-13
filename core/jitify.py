@@ -118,8 +118,39 @@ class Jitify:
 			else:
 				linker.add_data(jittype, data, name, CUjit_option)
 
-
 		cubin, size = linker.complete()
+
+		#TO DO
+			#cache cubin
+		# cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+		# cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
+		# self.cubins[device.id] = cubin_data
+
+		# if cubin is not None and cache:
+		# 	self._cache["cubin"][key] = cubin
+
+		# if self.do_save:
+		# 	pass
+		# 	# # #if a dir has been given, save a cubin to disk
+		# 	# # if self.cubindir is not None and os.path.exists(self.cubindir):
+		# 	# # 	#write cubin to disk
+		# 	# # 	_cubin = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+		# 	# # 	cubin_name = "%s_%s"%(key, entry) 
+
+		# 	# # 	#TO DO
+		# 	# # 		#save the file entry point length and entry point as bits at the start of the cubin instead of in the name of the file
+
+		# 	# # 	with open('%s/%s.cubin'%(self.cubindir, cubin_name), 'wb') as file:
+		# 	# # 		for i in range(size):
+		# 	# # 			file.write(_cubin[i])
+
+		# module_options = {
+		# 	CU_JIT_INFO_LOG_BUFFER: None,
+		# 	CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES: 1024,
+		# 	CU_JIT_ERROR_LOG_BUFFER: None,
+		# 	CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES: 1024,
+		# 	CU_JIT_LOG_VERBOSE: 1,
+		# }
 
 		#note: cubin must be turned into a module before the Linker is destroyed
 		module = Module(cubin) #module_options
