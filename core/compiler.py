@@ -5,6 +5,9 @@ from pycu.driver.core import Kernel
 #TO DO
 	#add in Numba function calls to compile python to PTX
 
+def find_closest_supported_arch(arch):
+	return 52
+
 def is_name_expression(entry):
 	symbols = {':','&','<','>','(',')'}
 	if len(set(entry) & symbols) != 0:

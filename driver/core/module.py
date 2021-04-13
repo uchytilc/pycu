@@ -204,8 +204,8 @@ class LinkerPtr:
 		add_data(data, name, options)
 
 	def add_file(self, path, options = {}):
-		_, name = os.path.split(path)
-		jittype = ext_map[name.split('.')[-1]]
+		_, file = os.path.split(path)
+		jittype = ext_map[file.split('.')[-1]]
 
 		optkeys, optvals, keep_alive = prepare_options(options)
 		self._keep_alive.extend(keep_alive)

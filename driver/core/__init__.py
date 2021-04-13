@@ -3,6 +3,7 @@ from .graphics import *
 from .kernel import *
 from .memory import *
 from .module import *
+from .event import *
 from .stream import *
 
 from pycu.driver import init, CUhostFn, launch_host_func

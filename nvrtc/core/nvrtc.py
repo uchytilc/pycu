@@ -318,14 +318,14 @@ def _load_headers(path, nvrtc_cache, loaded, I = []):
 
 def load_header(path):
 	#abs path to header file (if just a name check if it is a jitsafe header)
-	if path in jitsafe_headers.keys():
-		source = jitsafe_headers[path]
+	if path in nvrtc_headers.keys():
+		source = nvrtc_headers[path]
 	else:
 		source = open_file(path)
 	return source
 
 def find_header(include, paths):
-	if include in jitsafe_headers.keys():
+	if include in nvrtc_headers.keys():
 		return include
 	for path in paths:
 		hpath = os.path.join(path, include)
@@ -334,7 +334,8 @@ def find_header(include, paths):
 			# if include:
 			# 	path = os.path.join(path, subpath)
 			return hpath
-	raise FileNotFoundError(f'{include} could not be found at any of the known paths {paths}')
+	nl = '\n'
+	raise FileNotFoundError(f'{include} could not be found at any of the known paths {nl.join([path for path in paths])}')
 
 def get_includes(source):
 	#parse code loaded in for includes

@@ -23,3 +23,6 @@ class Event(EventPtr):
 		handle = event_create(flags)
 		weakref.finalize(self, event_destroy, handle)
 		super().__init__(handle)
+
+def event(flags = 0):
+	return Event(flags)
