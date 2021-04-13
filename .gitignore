@@ -2,8 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-core/numba_extension
-core/compiler_OLD.py
+core/temp/
+tests/
 
 
 # C extensions
