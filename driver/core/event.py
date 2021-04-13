@@ -2,40 +2,24 @@ from pycu.driver import (event_create, event_destroy, event_ellapsed_time,
 						 event_query, event_record, event_synchronize)
 import weakref
 
+class EventPtr:
+	def __init__(self, handle):
+		self.handle = handle
 
-class Event:
-	pass
+	def record(self, stream = 0):
+		event_record(self.handle, stream.handle if stream else 0)
 
+	def ellapsed_time(self, end):
+		return event_ellapsed_time(self.handle, end.handle)
 
+	def query(self):
+		return event_query(self.handle)
 
-def event_create(flags = 0):
-	event = CUvevent()
-	err = cuEventCreate(byref(event), flags)
-	check_driver_error_either(err, "cuEventCreate error")
+	def synchronize(self):
+		event_synchronize(self.handle)
 
-	return event
-
-def event_destroy(event):
-	err = cuEventDestroy(event)
-	check_driver_error_either(err, "cuEventDestroy error")
-
-def event_ellapsed_time(start, end):
-	time = c_float()
-	err = cuEventElapsedTime(byref(time), start, end)
-	check_driver_error_either(err, "cuEventElapsedTime error")
-
-	return time.value
-
-def event_query(event):
-	err = cuEventQuery(event)
-	if err and err != CUDA_ERROR_NOT_READY:
-		check_driver_error_either(err, "cuStreamQuery error")
-
-def event_record(event, stream = 0):
-	err = cuEventRecord(event, stream)
-	check_driver_error_either(err, "cuEventRecord error")
-
-def event_synchronize(event):
-	err = cuEventSynchronize(event)
-	check_driver_error_either(err, "cuEventSynchronize error")
-
+class Event(EventPtr):
+	def __init__(self, flags = 0):
+		handle = event_create(flags)
+		weakref.finalize(self, event_destroy, handle)
+		super().__init__(handle)

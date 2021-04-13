@@ -657,6 +657,7 @@ def event_query(event):
 	err = cuEventQuery(event)
 	if err and err != CUDA_ERROR_NOT_READY:
 		check_driver_error_either(err, "cuStreamQuery error")
+	return err
 
 def event_record(event, stream = 0):
 	err = cuEventRecord(event, stream)
