@@ -1,6 +1,4 @@
-This is a project I started developing in order to work on something else. There are a number of incomplete features as of right now, they are mostly added when I need them in the other project.
-
-PyCu is composed of a few libraries, each of which can be imported separately.
+PyCu is a ctypes binding to the CUDA Driver API and is composed of a few libraries, each of which can be imported separately.
 
 To access the direct API's of the Driver, NVRTC, or NVVM simply import any of the following
 
@@ -30,4 +28,4 @@ pycu also has its own "core" which contains Jitity, a jit compiler that uses NVR
 from pycu import core as pycu
 ```
 
-Currently ```import pycu``` will auto import all of the above packages including ```pycy.core``` but this can be turned off (and may be turned of by defualt in the future) if only a select few of the functionalities are needed.
+Currently ```import pycu``` will auto import all of the above packages including ```pycy.core``` but this can be turned off (and may be turned of by defualt in the future) if only a select few of the functionalities are needed. This is a project I started developing in order to work on something else. There are a number of incomplete features as of right now, they are mostly added when I need them in the other project.
