@@ -10,40 +10,8 @@ from pycu.nvvm.core import NVVM
 
 import os
 
-#TO DO
-	#check if cubins save entry point within file
-		#if not
-			#save the file entry point length and entry point as bytes at the start of the cubin
-			#rename .cubin to something else so users don't try and compile it on their own
-
 #this is not a real CUDA enum
 CU_JIT_INPUT_FILEPATH = -1
-
-# class AliasCache:
-	# #if user provides their own hash for a given input add it to the alias mapping
-	# #when a user requests a cached item first check the normal cache and then check for an alias
-
-	# def __init__(self):
-	# 	self.cache = {}
-	# 	self.alias = {}
-
-	# def __getitem__(self, key):
-	# 	value = self.cache.get(key, None)
-	# 	if value is None:
-	# 		key = self.alias.get(key, None)
-	# 		if key is not None:
-	# 			value = self.cache.get(key, None)
-	# 	return value
-
-	# def __setitem__(self, key, value):
-	# 	self.cache[key] = value
-
-	# def add_alias(self, i, o):
-	# 	self.alias[i] = o
-
-	# def clear(self):
-	# 	self.cache.clear()
-	# 	self.alias.clear()
 
 def compile_options_as_str(options):
 	#converts option dict to string for hashing purposes
@@ -58,36 +26,25 @@ def compile_options_as_str(options):
 	return f"[{','.join(opts)}]"
 
 class JitifyCache:
-	# #For threadsafe dict (even though it isn't needed because of the GIL)
-	# lock = threading.Lock()
-	# with lock:
-	# 	ptx[key] = value
-
 	def __init__(self):
 		#key: hash of precompiled code (source, nvvmir) and compiler options
 		#value: ptx source
 		self.ptx = {}
 		self.lowered_names = {}
 
-		# #NEED TO INCLUDE CONTEXT AS PART OF THE KEY#
-		# #key: key provided during compilation and/or hash of all input files used in kernel (not PTX but input type)
-		# #value: cached cubin
-		# self.cubins = {} #AliasCache()
-
 	def clear(self):
 		self.ptx.clear()
 		self.lowered_names.clear()
 		# self.cubins.clear()
 
-# def load_potential_file(path_or_source):
-	# #checks if path or source. If path, load file
-	# source = path_or_source
-	# if os.path.exists(path_or_source):
-	# 	path = path_or_source
-	# 	source = open_file(path)
-	# return source
-
 class Jitify:
+	# #For threadsafe dict (even though it isn't needed because of the GIL)
+	# lock = threading.Lock()
+	# with lock:
+	# 	ptx[key] = value
+
+	#TO DO:
+		#make this thread specific and include context in key
 	cache = JitifyCache()
 
 	def __init__(self, cache = True, save = False, **options):
@@ -107,12 +64,6 @@ class Jitify:
 		self.cubindir = os.path.join(jitdir, "cache")
 
 		self._compilation_queue = []
-
-	# def __getitem__(self, key):
-	# 	return self.get(key)
-
-	# def clear_cache(self):
-		# self.cache.clear()
 
 	def reset(self):
 		self._compilation_queue.clear()
@@ -170,40 +121,6 @@ class Jitify:
 
 		cubin, size = linker.complete()
 
-		#CACHE CUBIN
-		# # We take a copy of the cubin because it's owned by the linker
-		# cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-		# cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
-		# self.cubins[device.id] = cubin_data
-
-		# #USE CONTEXT IN KEY
-		# if cubin is not None and cache:
-		# 	self._cache["cubin"][key] = cubin
-
-		# #save to disk
-		# if self.do_save:
-		# 	pass
-		# 	# # #if a dir has been given, save a cubin to disk
-		# 	# # if self.cubindir is not None and os.path.exists(self.cubindir):
-		# 	# # 	#write cubin to disk
-		# 	# # 	_cubin = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-		# 	# # 	cubin_name = "%s_%s"%(key, entry) 
-
-		# 	# # 	#TO DO
-		# 	# # 		#save the file entry point length and entry point as bits at the start of the cubin instead of in the name of the file
-
-		# 	# # 	with open('%s/%s.cubin'%(self.cubindir, cubin_name), 'wb') as file:
-		# 	# # 		for i in range(size):
-		# 	# # 			file.write(_cubin[i])
-
-		# module_options = {
-		# 	CU_JIT_INFO_LOG_BUFFER: None,
-		# 	CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES: 1024,
-		# 	CU_JIT_ERROR_LOG_BUFFER: None,
-		# 	CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES: 1024,
-		# 	CU_JIT_LOG_VERBOSE: 1,
-		# }
-
 		#note: cubin must be turned into a module before the Linker is destroyed
 		module = Module(cubin) #module_options
 
@@ -259,42 +176,3 @@ class Jitify:
 				self.cache.ptx[key] = ptx
 
 		return ptx
-
-
-
-	# def load(self, key, **options):
-		# #TO DO
-		# 	#change './%s'%self.cubindir to be os agnostic
-		# 		#also make it an fstirng f'./{self.cubindir}'
-
-		# if not key:
-		# 	return None
-
-		# # #check local cache directory for cubin (grab first match)
-		# # cubin = None
-		# # size  = 0
-		# # entry = ''
-		# # if os.path.exists(self.cubindir):
-		# # 	for file in os.listdir(os.path.join(os.getcwd(), self.cubindir)):
-		# # 		if file.startswith(key):
-		# # 			_key, entry = file.split('.')[0].split('-')
-		# # 			with open(file, 'rb') as f:
-		# # 				cubin = f.read()
-		# # 				#size = len(cubin)
-		# # 			break
-
-		# ##############################
-		# kernel = None
-		# # if cubin is not None: #if size
-		# # 	cuctx  = get_context()
-		# # 	module = create_module(cubin, **options)
-		# # 	kernel = get_function(module, entry)
-		# ##############################
-
-		# return kernel
-
-
-#test_cuda_driver.py
-	#https://github.com/numba/numba/blob/c5461dd295663559b55f7e59280df9317062887c/numba/cuda/tests/cudadrv/test_cuda_driver.py
-#test_cuda_memory.py
-	# https://github.com/numba/numba/blob/e5364a3da418cffdb0de36238d0bb1346322118b/numba/cuda/tests/cudadrv/test_cuda_memory.py
