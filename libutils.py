@@ -21,10 +21,7 @@ def determine_file_name(paths, pattern):
 	return candidates
 
 def get_cuda_libpath(*subdirs):
-	#tries to find all CUDA related directories. All found paths have subdir appeneded to them
-
-	#if not isinstance(subdir, list):
-		#subdir = [subdir]
+	#tries to find all CUDA related directories. All found paths will also have subdir appeneded to them
 
 	paths = []
 

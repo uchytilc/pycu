@@ -4,9 +4,12 @@ from pycu.driver.core import Kernel
 from pycu.nvrtc.driver import get_libcudadevrt
 
 #TO DO
-	#add in Numba function calls to compile python to PTX
+	#re-add in Numba function calls to compile python to PTX for Python compilation support
 
 def find_closest_supported_arch(arch):
+	#TO DO
+		#implement
+
 	return 52
 
 def is_name_expression(entry):
@@ -34,8 +37,6 @@ def get_name_expressions(entry_points):
 def compile_source(source, entry_points, I = [], arch = None, include_runtime = True):
 	if isinstance(source, str):
 		source = [source]
-
-	arch = 52
 
 	entry_points, name_expressions = get_name_expressions(entry_points)
 	arch = find_closest_supported_arch(arch)

@@ -7,7 +7,7 @@ import ctypes
 #TO DO
 	#allow a preparer to create an object to hold until the kernel has finished
 		#This would allow numpy arrays to be given as input
-			#simply create a buffer, hold it for the length of the kernel, write back into the numpy array, and destroy it when the kernel ends
+			#simply create a buffer, hold it for the length of the kernel, write back into the numpy array, and destroy the device array when the kernel ends
 
 class ArgPreparer:
 	#prepares args for the kernel by moving them to the device.
@@ -31,7 +31,7 @@ class ArgPreparer:
 			arg = args.pop(0)
 			typ = sig[n + 1]
 			prepared = self.get_preparer(typ)(typ, arg)
-			#note: if preparer expends arg to multiple input types it returns a list
+			#note: if preparer expends `arg` to multiple input types it returns a list
 			if isinstance(prepared, (list, tuple)):
 				args.extend(prepared)
 			else:
@@ -54,15 +54,15 @@ class ArgPreparer:
 	def remove_preparer(typ):
 		return ArgPreparer.types.pop(typ)
 
+def unsupported_type(typ, arg):
+	raise TypeError(f"{type(arg)} is currently not supported")
+
 def ctypes_type(typ, arg):
 	return arg
 
 def numpy_type(typ, arg):
 	ctype = np.ctypeslib.as_ctypes_type(typ)
 	return ctype(arg)
-
-def unsupported_type(typ, arg):
-	raise TypeError(f"{type(arg)} is currently not supported")
 
 def bool_type(typ, arg):
 	return ctypes.c_bool(arg)
@@ -212,7 +212,6 @@ class Kernel:
 		if len(config) not in [2, 3, 4]:
 			raise ValueError('must specify at least the griddim and blockdim')
 		kernel = Kernel(self.handle, self.sig, self.prepare, *config)
-
 		return kernel
 
 	#>>
