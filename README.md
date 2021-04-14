@@ -22,7 +22,7 @@ If you want to import it all just import pycu as normal
 import pycu
 ```
 
-pycu also has its own "core" which contains Jitity, a jit compiler that uses NVRTC and NVVM to jit compile kernels
+pycu also has its own "core" which contains Jitity, a jit compiler that uses NVRTC and NVVM to compile kernel functions.
 
 ```
 from pycu import core as pycu
