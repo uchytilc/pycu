@@ -1,6 +1,6 @@
 from .api import VERSION_PROTOTYPE, API_PROTOTYPES
 from .error import DriverSupportError
-from pycu.libutils import find_lib
+from pycu.libutils import find_lib, CudaSupportError
 
 import sys
 import ctypes
@@ -8,33 +8,31 @@ import threading
 
 _driver_lock = threading.Lock()
 
-class CudaSupportError(ImportError):
-	pass
+# import platform
+# print(platform.architecture())
 
 def find_driver():
 	#installed at GPU driver location
 
 	paths = []
 
-	if sys.platform == 'linux':
-		loader = ctypes.CDLL
-		paths.extend(['/usr/lib/x86_64-linux-gnu','/usr/lib', '/usr/lib64'])
-		names = ['libcuda.so', 'libcuda.so.1']
-	elif sys.platform == 'win32':
+	if sys.platform == 'win32':
 		loader = ctypes.WinDLL
 		paths.append('\\windows\\system32')
 		names = ['nvcuda.dll']
 	# elif sys.platform == 'darwin': #OS x
-	# 	loader = ctypes.CDLL
-	# 	path = ['/usr/local/cuda/lib']
-	# 	name = ['libcuda.dylib']
+		# loader = ctypes.CDLL
+		# path = ['/usr/local/cuda/lib']
+		# name = ['libcuda.dylib']
 	else:
-		raise ValueError('platform not supported')
+		loader = ctypes.CDLL
+		paths.extend(['/usr/lib/x86_64-linux-gnu','/usr/lib','/usr/lib64'])
+		names = ['libcuda.so', 'libcuda.so.1']
 
 	try:
 		lib = find_lib(loader, paths, names)
 	except Exception as err:
-		raise CudaSupportError('CUDA driver cannot be found')
+		raise CudaSupportError('CUDA Driver could not be found')
 
 	return lib
 
@@ -50,82 +48,6 @@ def get_driver_version(driver):
 	err = cuDriverGetVersion(ctypes.byref(version))
 
 	return version.value
-
-def find_runtime():
-	pass
-	# /usr/local/cuda-11.1/targets/x86_64-linux/lib/libcudadevrt.a
-
-	# def find_nvvm():
-	# 	#installed in runtime library location (wherever CUDA toolkit is installed)
-
-	# 	if sys.platform == 'linux':
-	# 		paths = get_cuda_libvar()
-	# 		loader = ctypes.CDLL
-	# 		paths.extend(['/usr/local/cuda', '/usr/local/cuda/nvvm', '/usr/local/cuda/nvvm/lib64'])
-	# 		names = ['libnvvm.so']
-	# 	elif sys.platform == 'win32':
-	# 		paths = get_cuda_libvar(os.path.join('nvvm', 'bin'))
-	# 		loader = ctypes.WinDLL
-	# 		names = [*determine_file_name(paths, 'nvvm64.*\.dll')]
-	# 		# names = [*determine_file_name(paths, 'nvvm64.*\\.dll')]
-
-	# 	# elif sys.platform == 'darwin': #OS x
-	# 		# loader = ctypes.CDLL
-	# 		# paths.append(['/usr/local/cuda/lib'])
-	# 		# names = ['libcuda.dylib']
-	# 	else:
-	# 		raise ValueError('platform not supported')
-
-	# 	try:
-	# 		lib = find_lib(loader, paths, names)
-	# 	except Exception as err:
-	# 		raise CudaSupportError('NVVM cannot be found')
-
-	# 	return lib
-
-
-	# def find_libdevice():
-	# 	cuda_dir = get_cuda_dir()
-
-	# 	paths = []
-	# 	if cuda_dir:
-	# 		paths.append(os.path.join(cuda_dir, 'nvvm', 'libdevice'))
-
-	# 	if sys.platform == 'linux':
-	# 		paths.extend(['/usr/local/cuda/nvvm/libdevice'])
-	# 	elif sys.platform == 'win32':
-	# 		pass
-	# 	# elif sys.platform == 'darwin': #OS x
-	# 		# names = ['libcuda.dylib']
-	# 	else:
-	# 		raise ValueError('platform not supported')
-
-	# 	pat = r'libdevice(\.(?P<arch>compute_\d+))?(\.\d+)*\.bc$'
-	# 	paths = find_file(re.compile(pat), paths)
-
-	# 	arches = defaultdict(list)
-	# 	for path in paths:
-	# 		m = re.search(pat, path)
-	# 		arch = m.group('arch')
-	# 		if arch:
-	# 			arch = int(arch.split('_'[-1]))
-	# 		arches[arch].append(path)
-	# 	arches = {k: max(v) for k, v in arches.items()}
-	# 	return arches
-
-	# def find_file(pat, dirs):
-	# 	if isinstance(dirs, str):
-	# 		dirs = [dirs]
-
-	# 	paths = []
-	# 	for d in dirs:
-	# 		files = os.listdir(d)
-	# 		candidates = [os.path.join(d, file) for file in files if pat.match(file)]
-	# 		paths.extend([c for c in candidates if os.path.isfile(c)])
-	# 	return paths
-
-
-
 
 class Driver:
 	__singleton = None

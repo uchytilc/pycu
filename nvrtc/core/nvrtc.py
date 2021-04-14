@@ -1,5 +1,5 @@
 from pycu.nvrtc import create_program, compile_program, destroy_program, get_ptx, get_ptx_size, add_name_expression, get_lowered_name
-from pycu.libutils import open_file
+from pycu.utils import open_file
 
 from .nvrtc_headers import nvrtc_headers
 

@@ -1,6 +1,7 @@
 from .api import API_PROTOTYPES
 from .error import NvrtcSupportError
-from pycu.libutils import find_lib, get_cuda_libvar, determine_file_name
+from pycu.libutils import *
+from pycu.utils import open_file
 
 import sys
 import ctypes
@@ -8,33 +9,25 @@ import threading
 
 _nvrtc_lock = threading.Lock()
 
-class CudaSupportError(ImportError):
-	pass
-
 def find_nvrtc():
-	#installed in runtime library location (wherever CUDA toolkit is installed)
-
-	if sys.platform == 'linux':
-		paths = get_cuda_libvar()
-		loader = ctypes.CDLL
-		paths.append('/usr/local/cuda')
-		names = ['libnvrtc.so']
-	elif sys.platform == 'win32':
-		paths = get_cuda_libvar('bin')
-		loader = ctypes.WinDLL
+	if sys.platform == 'win32':
+		paths = get_cuda_libpath('bin')
 		# paths.append('\\windows\\system32')
+		loader = ctypes.WinDLL
 		names = [*determine_file_name(paths, 'nvrtc64.*\.dll')] # nvrtc-builtins64_110.dll
 	# elif sys.platform == 'darwin': #OS x
 		# loader = ctypes.CDLL
 		# paths.append(['/usr/local/cuda/lib'])
 		# names = ['libcuda.dylib']
 	else:
-		raise ValueError('platform not supported')
+		paths = get_cuda_libpath('cuda/lib64')
+		loader = ctypes.CDLL
+		names = ['libnvrtc.so']
 
 	try:
 		lib = find_lib(loader, paths, names)
 	except Exception as err:
-		raise CudaSupportError('NVRTC cannot be found')
+		raise CudaSupportError('NVRTC could not be found')
 
 	return lib
 
@@ -60,3 +53,32 @@ class Driver(object):
 					setattr(inst, name, func)
 
 		return cls.__singleton
+
+#cuda device runtime
+_libcudadevrt = None
+
+def get_libcudadevrt():
+	global _libcudadevrt
+
+	if _libcudadevrt is None:
+		if sys.platform == 'win32':
+			paths = get_cuda_libpath(os.path.join('lib', 'x64'))
+			loader = ctypes.WinDLL
+			names = ['cudadevrt.lib']
+		# elif sys.platform == 'darwin': #OS x
+			# loader = ctypes.CDLL
+			# paths.append(['/usr/local/cuda/lib'])
+			# names = ['libcuda.dylib']
+		else:
+			paths = get_cuda_libpath('cuda/lib64')
+			loader = ctypes.CDLL
+			names = ['libcudadevrt.a']
+
+		candidates = get_file_candidates(paths, names)
+		for path in candidates:
+			try:
+				_libcudadevrt = open_file(path, 'rb')
+				break
+			except Exception as err:
+				raise CudaSupportError('libcudadevrt.a could not be found')
+	return _libcudadevrt

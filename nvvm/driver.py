@@ -1,6 +1,7 @@
 from .api import API_PROTOTYPES
 from .error import NvvmSupportError
-from pycu.libutils import open_file, find_lib, get_cuda_libvar, get_cuda_dir, determine_file_name
+from pycu.libutils import *
+from pycu.utils import open_file
 
 from collections import defaultdict
 import sys
@@ -11,23 +12,18 @@ import os
 
 _nvvm_lock = threading.Lock()
 
-class CudaSupportError(ImportError):
-	pass
-
 def find_nvvm():
 	#installed in runtime library location (wherever CUDA toolkit is installed)
 
 	if sys.platform == 'linux':
-		paths = get_cuda_libvar()
+		paths = get_cuda_libpath()
+		paths.extend(['/usr/local/cuda/nvvm', '/usr/local/cuda/nvvm/lib64'])
 		loader = ctypes.CDLL
-		paths.extend(['/usr/local/cuda', '/usr/local/cuda/nvvm', '/usr/local/cuda/nvvm/lib64'])
 		names = ['libnvvm.so']
 	elif sys.platform == 'win32':
-		paths = get_cuda_libvar(os.path.join('nvvm', 'bin'))
+		paths = get_cuda_libpath(os.path.join('nvvm', 'bin'))
 		loader = ctypes.WinDLL
 		names = [*determine_file_name(paths, 'nvvm64.*\.dll')]
-		# names = [*determine_file_name(paths, 'nvvm64.*\\.dll')]
-
 	# elif sys.platform == 'darwin': #OS x
 		# loader = ctypes.CDLL
 		# paths.append(['/usr/local/cuda/lib'])
@@ -68,47 +64,54 @@ class Driver(object):
 
 		return cls.__singleton
 
-#known_archs example:
-	#arch = [None,20,30,35,50]
+#key: arch associated with libdevice (None indicates libdevice is not arch specific)
+#value: libdevice source
+_libdevice = {}
+
+#key:given arch
+#value: closest available arch found
+_searched_arch = {}
 
 def get_libdevice(arch = None):
-	files = find_libdevice()
-	#sorts with None at the end
-	options = sorted(list(files.keys()), key = lambda x: (x is None, x))
-	arch = get_closest_arch(arch, options)
+	#known_archs example:
+		#arch = [None,20,30,35,50]
+	global _libdevice, _searched_arch
 
-	return {arch:open_file(files[arch], 'rb')}
+	lib = _libdevice.get(arch, None)
+	if lib is None:
+		#note: use False instead of None in searched_arch.get when indicating failure to prevent getting None key from libdevice (libdevice with no "compute_" is stored under None key)
+		lib = _libdevice.get(_searched_arch.get(arch, False), None)
+	if lib is None:
+		libdevice = find_libdevice()
+		#sort with None at the end
+		options = sorted(list(libdevice.keys()), key = lambda x: (x is None, x))
+		found_arch = get_closest_arch(arch, options)
+		lib = open_file(libdevice[found_arch], 'rb')
+		#cache found libdevice and arch
+		_searched_arch[arch] = found_arch
+		_libdevice[arch] = lib
+
+	return lib
 
 def get_closest_arch(arch, options):
 	if arch is None:
 		return options[-1]
-
 	for potential in reversed(options[:-1]):
 		if potential <= arch:
 			return potential
 	return options[-1]
 
 def find_libdevice():
-	cuda_dir = get_cuda_dir()
-
-	paths = []
-	if cuda_dir:
-		paths.append(os.path.join(cuda_dir, 'nvvm', 'libdevice'))
-
-	if sys.platform == 'linux':
-		paths.extend(['/usr/local/cuda/nvvm/libdevice'])
-	elif sys.platform == 'win32':
-		pass
-	# elif sys.platform == 'darwin': #OS x
-		# names = ['libcuda.dylib']
-	else:
-		raise ValueError('platform not supported')
-
+	paths = get_cuda_libpath(os.path.join('nvvm', 'libdevice'))
 	pat = r'libdevice(\.(?P<arch>compute_\d+))?(\.\d+)*\.bc$'
-	paths = find_file(re.compile(pat), paths)
+	found = find_file_from_pattern(re.compile(pat), paths)
+
+	if not found:
+		locations = '\n'.join(paths)
+		raise CudaSupportError(f'libdevice could not be found at any of the following locations {locations}')
 
 	arches = defaultdict(list)
-	for path in paths:
+	for path in found:
 		m = re.search(pat, path)
 		arch = m.group('arch')
 		if arch:
@@ -116,14 +119,3 @@ def find_libdevice():
 		arches[arch].append(path)
 	arches = {k: max(v) for k, v in arches.items()}
 	return arches
-
-def find_file(pat, dirs):
-	if isinstance(dirs, str):
-		dirs = [dirs]
-
-	paths = []
-	for d in dirs:
-		files = os.listdir(d)
-		candidates = [os.path.join(d, file) for file in files if pat.match(file)]
-		paths.extend([c for c in candidates if os.path.isfile(c)])
-	return paths

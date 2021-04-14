@@ -1,6 +1,7 @@
 from . import context_manager
 from .jitify import Jitify
 from pycu.driver.core import Kernel
+from pycu.nvrtc.driver import get_libcudadevrt
 
 #TO DO
 	#add in Numba function calls to compile python to PTX
@@ -43,14 +44,12 @@ def compile_source(source, entry_points, I = [], arch = None, include_runtime = 
 
 	nvrtc_options = {"I":I, "arch":arch,"name-expression":name_expressions}
 
-	# if include_runtime:
+	if include_runtime:
+		jitify.add_library(get_libcudadevrt())
+
 		# nvrtc_options.update({"relocatable-device-code":True})
 		# path = "/usr/local/cuda-11.0/targets/x86_64-linux/lib/libcudadevrt.a"
 		# path = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\lib\\x64\\cudadevrt.lib"
-		# jitify.add_file(path)
-
-		# with open(path, 'rb') as runtime:
-			# jitify.add_library(runtime.read())
 
 	for s in source:
 		lowered_names = jitify.add_source(s, nvrtc_options = nvrtc_options)

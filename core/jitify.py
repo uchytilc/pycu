@@ -2,11 +2,10 @@ from pycu.driver import (CU_JIT_INFO_LOG_BUFFER, CU_JIT_INFO_LOG_BUFFER_SIZE_BYT
 						 CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES, CU_JIT_LOG_VERBOSE, CU_JIT_TARGET_FROM_CUCONTEXT,
 						 CU_JIT_INPUT_OBJECT, CU_JIT_INPUT_PTX, CU_JIT_INPUT_LIBRARY, CU_JIT_INPUT_CUBIN, CU_JIT_INPUT_FATBINARY)
 
-from pycu.libutils import open_file, generate_hash
-
 from pycu.driver.core import module_load_data, module_get_function, Module, Linker
 from pycu.nvrtc.core import NVRTC
 from pycu.nvvm.core import NVVM
+from pycu.utils import open_file, generate_hash
 
 import os
 

@@ -1,24 +1,16 @@
+from .utils import open_file
+
 import os
+import sys
 from itertools import product
 import re
-import hashlib
 
-def open_file(path, mode = 'r'):
-	with open(path, mode) as source:
-		return source.read()
-
-def encode(data, typ = "utf8"):
-	return data.encode(typ)
-
-def generate_hash(string):
-	if not isinstance(string, bytes):
-		string = string.encode()
-
-	m = hashlib.md5() #sha256
-	m.update(string)
-	return m.hexdigest() #digest()
+class CudaSupportError(ImportError):
+	pass
 
 def determine_file_name(paths, pattern):
+	#finds all files within paths that match the given pattern
+
 	candidates = []
 	regex = re.compile(pattern)
 	for path in paths:
@@ -28,19 +20,33 @@ def determine_file_name(paths, pattern):
 					candidates.append(file)
 	return candidates
 
-def get_cuda_libvar(subdir = ''):
+def get_cuda_libpath(*subdirs):
+	#tries to find all CUDA related directories. All found paths have subdir appeneded to them
+
+	#if not isinstance(subdir, list):
+		#subdir = [subdir]
+
 	paths = []
 
 	#Windows/Linux
-	path = os.environ.get("CUDA_PATH", '')
-	paths.append(os.path.join(path, subdir))
+	path = get_cuda_dir()
+	if path:
+		for subdir in subdirs:
+			paths.append(os.path.join(path, subdir))
 
 	#Linux
-	environ = os.environ.get("LD_LIBRARY_PATH", None)
-	if environ:
-		for path in environ.split(':'):
-			if 'cuda' in path:
-				paths.append(os.path.join(path, subdir))
+	if sys.platform == 'linux':
+		#default install location
+		paths.append('/usr/local/cuda')
+		for subdir in subdirs:
+			paths.append(os.path.join('/usr/local/cuda', subdir))
+		environ = os.environ.get("LD_LIBRARY_PATH", '')
+		if environ:
+			for path in environ.split(':'):
+				if 'cuda' in path:
+					paths.append(path)
+					for subdir in subdirs:
+						paths.append(os.path.join(path, subdir))
 	return paths
 
 def get_cuda_pathvar():
@@ -56,51 +62,48 @@ def get_cuda_dir():
 		cuda_dir = os.environ.get('CUDA_PATH', '')
 	return cuda_dir
 
-
-class CudaSupportError(ImportError):
-	pass
-
-def find_lib(loader, paths, names):
-	# if envpath is not None:
-		# try:
-		# 	envpath = os.path.abspath(envpath)
-		# except ValueError:
-		# 	raise ValueError("NUMBA_CUDA_DRIVER %s is not a valid path" %
-		# 					 envpath)
-		# if not os.path.isfile(envpath):
-		# 	raise ValueError("NUMBA_CUDA_DRIVER %s is not a valid file "
-		# 					 "path.  Note it must be a filepath of the .so/"
-		# 					 ".dll/.dylib or the driver" % envpath)
-		# candidates = [envpath]
-
-	# First search for the name in the default library path.
-	# If that is not found, try the specific path.
-
-	#if a name is a regular expression
-		#check if path exists
-		#grab all files that match regular expression
-
-
+def get_file_candidates(paths, names):
 	candidates = names + [os.path.join(path, name) for path, name in product(paths, names)]
 
-	# Load the driver; Collect driver error information
+	paths = []
 	path_not_exist = []
-	driver_load_error = []
+	for path in candidates:
+		if os.path.isfile(path):
+			paths.append(path)
+		else:
+			#currently does nothing
+			path_not_exist.append(path)
+	return paths
 
+def find_lib(loader, paths, names):
+	candidates = get_file_candidates(paths, names)
+
+	driver_load_error = []
 	for path in candidates:
 		try:
 			dll = loader(path)
 		# Problem opening the DLL
 		except OSError as e:
-			path_not_exist.append(not os.path.isfile(path))
 			driver_load_error.append(e)
+			# path_not_exist.append(not os.path.isfile(path))
 		else:
 			return dll
 
-	# Problem loading driver
-	if all(path_not_exist):
-		# print(path_not_exist)
-		raise CudaSupportError("CUDA driver and/or runtime library cannot be found")
-	# else:
-		# errmsg = '\n'.join(str(e) for e in driver_load_error)
-		# _raise_driver_error(errmsg)
+	raise CudaSupportError("CUDA driver and/or runtime library cannot be found")
+
+def find_file_from_pattern(pat, dirs):
+	if isinstance(dirs, str):
+		dirs = [dirs]
+
+	paths = []
+	file_not_found = []
+	for d in dirs:
+		try:
+			files = os.listdir(d)
+			candidates = [os.path.join(d, file) for file in files if pat.match(file)]
+			paths.extend([c for c in candidates if os.path.isfile(c)])
+		except FileNotFoundError:
+			#currently does nothing
+			file_not_found.append(d)
+
+	return paths

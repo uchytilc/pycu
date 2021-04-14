@@ -8,13 +8,13 @@ from ctypes import c_char_p
 import weakref
 
 class NVVMPtr:
-	#key: arch associated with libdevice (None indicates libdevice is not arch specific)
-	#value: libdevice source
-	libdevice = {}
+	# #key: arch associated with libdevice (None indicates libdevice is not arch specific)
+	# #value: libdevice source
+	# libdevice = {}
 
-	#key:given arch
-	#value: closest available arch found
-	searched_arch = {}
+	# #key:given arch
+	# #value: closest available arch found
+	# searched_arch = {}
 
 	def __init__(self, handle, arch = 20):
 		self.get_libdevice(arch)
@@ -22,15 +22,16 @@ class NVVMPtr:
 		self.handle = handle
 
 	def get_libdevice(self, arch = 20):
-		libdevice = self.libdevice.get(arch, None)
-		if libdevice is None:
-			#note: use False instead of None in searched_arch.get when indicating failure to prevent getting None key from libdevice (libdevice with no "compute_" is stored under None key)
-			libdevice = self.libdevice.get(self.searched_arch.get(arch, False), None)
-		if libdevice is None:
-			found_arch, libdevice = next(iter(get_libdevice(arch).items()))
-			self.searched_arch[arch] = found_arch
-			self.libdevice[arch] = libdevice
-		return libdevice
+		return get_libdevice(arch)
+		# libdevice = self.libdevice.get(arch, None)
+		# if libdevice is None:
+		# 	#note: use False instead of None in searched_arch.get when indicating failure to prevent getting None key from libdevice (libdevice with no "compute_" is stored under None key)
+		# 	libdevice = self.libdevice.get(self.searched_arch.get(arch, False), None)
+		# if libdevice is None:
+		# 	found_arch, libdevice = next(iter(get_libdevice(arch).items()))
+		# 	self.searched_arch[arch] = found_arch
+		# 	self.libdevice[arch] = libdevice
+		# return libdevice
 
 	def get_version(self):
 		return version()
