@@ -34,26 +34,25 @@ def get_name_expressions(entry_points):
 			_entry_points.append(entry)
 	return _entry_points, name_expressions
 
-def compile_source(source, entry_points, I = [], arch = None, include_runtime = True):
-	if isinstance(source, str):
-		source = [source]
+def compile_source(source, entry_points, nvrtc_options = {}, libcudadert = False):
+	#create copy so that the contents can be altered
+	nvrtc_options_updated = nvrtc_options.copy()
 
 	entry_points, name_expressions = get_name_expressions(entry_points)
-	arch = find_closest_supported_arch(arch)
+	arch = find_closest_supported_arch(nvrtc_options.get('arch', None))
+	nvrtc_options_updated.update({"arch":arch,"name-expression":name_expressions})
 
 	jitify = Jitify()
 
-	nvrtc_options = {"I":I, "arch":arch,"name-expression":name_expressions}
-
-	if include_runtime:
-		jitify.add_library(get_libcudadevrt())
-
-		# nvrtc_options.update({"relocatable-device-code":True})
-		# path = "/usr/local/cuda-11.0/targets/x86_64-linux/lib/libcudadevrt.a"
-		# path = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\lib\\x64\\cudadevrt.lib"
+	if isinstance(source, str):
+		source = [source]
+	if len(source) > 1:
+		nvrtc_options_updated.update({"relocatable-device-code":True})
+	if libcudadert:
+		jitify.add_library(get_libcudadevrt()) # jitify.add_libcudadevrt()
 
 	for s in source:
-		lowered_names = jitify.add_source(s, nvrtc_options = nvrtc_options)
+		lowered_names = jitify.add_source(s, nvrtc_options = nvrtc_options_updated)
 		entry_points += lowered_names
 
 	module = jitify.compile()
@@ -68,3 +67,4 @@ def compile_source(source, entry_points, I = [], arch = None, include_runtime = 
 	if len(kernels) == 1:
 		kernels = kernels[0]
 	return kernels
+

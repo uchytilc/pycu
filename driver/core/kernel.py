@@ -10,7 +10,7 @@ import ctypes
 			#simply create a buffer, hold it for the length of the kernel, write back into the numpy array, and destroy the device array when the kernel ends
 
 class ArgPreparer:
-	#prepares args for the kernel by moving them to the device.
+	#prepares args for the kernel by converting them to the appropriate types.
 	types = {}
 	prepare = True
 
@@ -194,38 +194,44 @@ class Kernel:
 	arg_preparer = ArgPreparer()
 	def __init__(self, handle, sig = None, prepare = True, griddim = None, blockdim = None, stream = 0, sharedmem = 0):
 		self.handle = handle
-		self.configure(sig, prepare, griddim, blockdim, stream, sharedmem)
-
-	def configure(self, sig, prepare, griddim, blockdim, stream, sharedmem):
-		#if a signature is provided, parse the input args to convert them to the proper format for the kernel call
-		#if the signature is not provided it is left up to the user to pass in the correct input arguments in the correct format
+		#If a signature is provided, the inputs are parsed and converted
+		#to the proper type for the kernel call. If the signature is not
+		#provided it is left up to the user to pass in the correct input
+		#arguments in the correct types
 		self.sig = sig
 		self.prepare = prepare
+		self.configure(griddim, blockdim, stream, sharedmem)
+
+	def set_signature(self, sig):
+		self.sig = sig
+
+	def configure(self, griddim, blockdim, stream = 0, sharedmem = 0):
 		self.griddim, self.blockdim = normalize_griddim_blockdim(griddim, blockdim)
-		self.stream = stream.handle if stream else 0 #stream.handle is isinstance(stream, Stream) else stream
+		self.stream = stream #stream.handle if stream else 0 #stream.handle is isinstance(stream, Stream) else stream
 		self.sharedmem = sharedmem
 
 	#<<
 	def __lshift__(self, config):
 		#set kernel configuration
-
 		if len(config) not in [2, 3, 4]:
 			raise ValueError('must specify at least the griddim and blockdim')
-		kernel = Kernel(self.handle, self.sig, self.prepare, *config)
-		return kernel
+		return Kernel(self.handle, self.sig, self.prepare, *config)
+		# self.configure(*config)
+		# return self
 
 	#>>
 	def __rshift__(self, args):
 		#call kernel
-
 		if isinstance(args, (tuple, list)):
 			return self(*args)
 		return self(args)
+
+	def __getitem__(self, config):
+		return self << config
 
 	def __call__(self, *args):
 		if not self.griddim or not self.blockdim:
 			raise ValueError("The kernel's griddim and blockdim must be set before the kernel can be called.")
 		if self.prepare:
 			args = self.arg_preparer(args, self.sig)
-
 		launch_kernel(self.handle, self.griddim, self.blockdim, args, self.sharedmem, self.stream)

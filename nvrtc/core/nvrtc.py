@@ -8,6 +8,11 @@ import sys
 from ctypes import c_char_p
 import weakref
 
+def single_or_multi_arg(opt, args):
+	if isinstance(args, str):
+		args = [args]
+	return [opt.format(arg = arg) for arg in args]
+
 class NVRTCPtr:
 	def __init__(self, handle):
 		self.handle = handle
@@ -128,6 +133,9 @@ class NVRTCPtr:
 				f"--prec-div={prec_div}".lower(),
 				f"--fmad={fmad}".lower()]
 
+		# opts.append(f"--define-macro=TEST1=1")
+		# opts.append(f"--define-macro=TEST2=4")
+
 		#jitify default
 		if options.get("device-as-default-execution-space", options.get('default-device', True)): #False
 			opts.append("-default-device")
@@ -157,19 +165,19 @@ class NVRTCPtr:
 
 			D = options.get("define-macro", options.get('D', ""))
 			if D:
-				opts.append(f"--define-macro={D}")
+				opts.extend(single_or_multi_arg("--define-macro={arg}", D))
 
 			U = options.get("undefine-macro", options.get('U', ""))
 			if U:
-				opts.append(f"--undefine-macro={U}")
+				opts.extend(single_or_multi_arg("--undefine-macro={arg}", U))
 
 			I = options.get("include-path", options.get('I', ""))
 			if I:
-				opts.append(f"--include-path={I}")
+				opts.extend(single_or_multi_arg("--include-path={arg}", I))
 
 			header = options.get("pre-include", options.get('include', ""))
 			if header:
-				opts.append(f"--pre-include={header}")
+				opts.extend(single_or_multi_arg("--pre-include={arg}", header))
 
 			std = options.get("std", "")
 			if std:

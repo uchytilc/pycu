@@ -30,9 +30,7 @@ class CuBufferPtr:
 		return f"CuBufferPtr() <{self.handle}>"
 
 	def copy_to_host(self, dst, nbytes, offset = 0, stream = 0):
-		#offset is in bytes
-
-		args = [get_handle(dst), self.handle, nbytes] #get_handle(dst) + offset
+		args = [get_handle(dst), self.handle, nbytes] #get_handle(dst) + offset (offset is in bytes)
 		memcpy = memcpy_dtoh
 		if stream:
 			args.append(stream.handle)
@@ -43,9 +41,7 @@ class CuBufferPtr:
 		return dst
 
 	def copy_from_host(self, src, nbytes, offset = 0, stream = 0):
-		#offset is in bytes
-
-		args = [self.handle, get_handle(src), nbytes] #get_handle(src) + offset
+		args = [self.handle, get_handle(src), nbytes] #get_handle(src) + offset (offset is in bytes)
 
 		memcpy = memcpy_htod
 		if stream:
@@ -202,14 +198,14 @@ class CuNDArray:
 
 		self.shape = shape
 		self.order = order
-		self.dtype = np.dtype(dtype) #type.as_numpy() if isinstance(dtype, pycu.types.Type) else np.dtype(dtype)
+		self.dtype = np.dtype(dtype)
 		self.strides = generate_strides(self.shape, self.itemsize, self.order) if not strides else strides
 
 		if self.size <= 0:
 			raise ValueError('CuNDArray size must be larger than 0.')
 
 		if not is_contiguous(self.shape, self.strides, self.itemsize):
-			raise ValueError('The shape and stride do match')
+			raise ValueError('The shape and stride provided are not compatible')
 
 		self._buff = CuBuffer(self.size, self.dtype)
 
@@ -224,10 +220,10 @@ class CuNDArray:
 				'typestr': self.dtype.name,
 				'version': 2}
 
-	@property
-	def _pycu_type_(self):
-		import pycu #.core.types
-		return pycu.core.cuarray(self.ndim, pycu.core.dtype(self.dtype))
+	# @property
+	# def _pycu_type_(self):
+		# import pycu #.core.types
+		# return pycu.core.cuarray(self.ndim, pycu.core.dtype(self.dtype))
 
 	@property
 	def itemsize(self):
@@ -388,8 +384,8 @@ class PinnedBufferPtr:
 	def __init__(self, handle):
 		self.handle = handle
 
-	# def __repr__(self):
-		# return f"PinnedBuffer({self.size}, {self.dtype}) <{self._handle}>"
+	def __repr__(self):
+		return f"PinnedBufferPtr() <{self._handle}>"
 
 	def memmove(self, dst, nbytes, offset = 0):
 		handle = get_handle(dst)
@@ -405,7 +401,6 @@ class PinnedBufferPtr:
 #Host pinner array
 class PinnedBuffer(PinnedBufferPtr):
 	def __init__(self, src, flags = 0): #nbytes = 0, offset = 0
-
 		#keep reference to src buffer to prevent it from being garbage collected as long as pinned memory exists
 		self.src = src
 		handle = get_handle(src)
@@ -414,6 +409,9 @@ class PinnedBuffer(PinnedBufferPtr):
 		weakref.finalize(self, mem_host_unregister, handle)
 
 		super().__init__(handle)
+
+	def __repr__(self):
+		return f"PinnedBuffer({self.size}, {self.dtype}) <{self._handle}>"
 
 	@property
 	def size(self):
@@ -552,15 +550,6 @@ class IPCHandle:
 	#CUresult cuIpcGetMemHandle ( CUipcMemHandle* pHandle, CUdeviceptr dptr )
 	#CUresult cuIpcOpenEventHandle ( CUevent* phEvent, CUipcEventHandle handle )
 	#CUresult cuIpcOpenMemHandle ( CUdeviceptr* pdptr, CUipcMemHandle handle, unsigned int  Flags )
-
-
-
-
-# import numpy as np
-
-# #buffers
-# #numba array/numpy array
-
 
 
 

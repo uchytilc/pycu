@@ -1,5 +1,3 @@
-from .utils import open_file
-
 import os
 import sys
 from itertools import product

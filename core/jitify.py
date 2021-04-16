@@ -160,7 +160,7 @@ class Jitify:
 		nvrtc_options['default-device'] = nvrtc_options.get("default-device", True)
 		nvrtc_options['dc'] = nvrtc_options.get("dc", True)
 
-		#name_expression example: "kernel_name<float, float, int>", &kernel_name
+		#name_expression example: "kernel_name<float, float, int>", &kernel_name, ...
 		name_expressions = nvrtc_options.pop("name-expression", '')
 		if not isinstance(name_expressions, (list, tuple)):
 			name_expressions = [name_expressions]

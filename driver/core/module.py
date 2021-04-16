@@ -115,7 +115,6 @@ def prepare_options(options):
 
 class LinkerPtr:
 	def __init__(self, handle):
-		#if handle is provided directly cleanup is left up to the owner of handle
 		self.handle = handle
 
 	def __repr__(self):
@@ -183,6 +182,8 @@ class LinkerPtr:
 		self._keep_alive.extend([lib, name, optkeys, optvals])
 
 	def add_fatbinary(self, fatbin, name = '<pycu-fatbin>', options = {}):
+		#note: fatcubin is a collection of cubins of the same device code but compile/optimized for several architectures
+
 		pass
 		# link_add_data(self.handle, CU_JIT_INPUT_FATBINAR, data, size, name, optkeys, optvals)
 		# self._keep_alive.extend([fatbin, name, optkeys, optvals])
@@ -257,7 +258,6 @@ class ModulePtr:
 	def get_tex_ref(self, name):
 		return module_get_tex_ref(self.handle, name.encode('utf8'))
 
-#note: fatcubin is a collection of cubins of the same device code but compile/optimized for several architectures
 class Module(ModulePtr):
 	def __init__(self, image, options = {}):
 		#module_load_fat_binary
