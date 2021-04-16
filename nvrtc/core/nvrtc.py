@@ -133,9 +133,6 @@ class NVRTCPtr:
 				f"--prec-div={prec_div}".lower(),
 				f"--fmad={fmad}".lower()]
 
-		# opts.append(f"--define-macro=TEST1=1")
-		# opts.append(f"--define-macro=TEST2=4")
-
 		#jitify default
 		if options.get("device-as-default-execution-space", options.get('default-device', True)): #False
 			opts.append("-default-device")
@@ -264,7 +261,6 @@ class NVRTC(NVRTCPtr):
 		source = source.encode('utf8')
 		name = name.encode('utf8')
 
-		# self.handle = handle = create_program(source, header_src, header_names, name)
 		handle = create_program(source, header_src, header_names, name)
 		weakref.finalize(self, destroy_program, handle)
 
@@ -283,7 +279,7 @@ class NVRTC(NVRTCPtr):
 			loaded = set()
 			cache = self.cache
 			if not self.do_cache:
-				#create temporary cache to load headers but do not save
+				#create temporary cache to load headers
 				cache = NVRTCCache()
 			_load_headers(hpath, cache, loaded, [hdir] + I)
 

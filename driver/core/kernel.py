@@ -207,7 +207,7 @@ class Kernel:
 
 	def configure(self, griddim, blockdim, stream = 0, sharedmem = 0):
 		self.griddim, self.blockdim = normalize_griddim_blockdim(griddim, blockdim)
-		self.stream = stream #stream.handle if stream else 0 #stream.handle is isinstance(stream, Stream) else stream
+		self.stream = stream #stream.handle is isinstance(stream, Stream) else stream
 		self.sharedmem = sharedmem
 
 	#<<
@@ -234,4 +234,4 @@ class Kernel:
 			raise ValueError("The kernel's griddim and blockdim must be set before the kernel can be called.")
 		if self.prepare:
 			args = self.arg_preparer(args, self.sig)
-		launch_kernel(self.handle, self.griddim, self.blockdim, args, self.sharedmem, self.stream)
+		launch_kernel(self.handle, self.griddim, self.blockdim, args, self.sharedmem, self.stream.handle if self.stream else 0)

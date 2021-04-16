@@ -125,8 +125,6 @@ class NVVMPtr:
 
 		#TO DO
 			#Apply Numba's debug patch to ptx
-		# #From numba/numba/cuda/cudadrv/nvvm.py
-		# patch_ptx_debug_pubnames(ptx)
 
 		return ptx
 

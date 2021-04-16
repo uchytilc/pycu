@@ -1,5 +1,6 @@
 from . import context_manager
 from .jitify import Jitify
+
 from pycu.driver.core import Kernel
 from pycu.nvrtc.driver import get_libcudadevrt
 
