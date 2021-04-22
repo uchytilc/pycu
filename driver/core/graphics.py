@@ -54,7 +54,7 @@ class GraphicResource:
 		devptr, size = graphics_resource_get_mapped_pointer(self.handle)
 		self.size = size
 
-		return devptr
+		return devptr, size
 
 	def get_mapped_pointer_size(self):
 		# #get mapped pointer to update size
@@ -92,6 +92,9 @@ class OpenGLGraphicsResource(GraphicResource):
 
 	def __repr__(self):
 		return f"OpenGLGraphicsResource() <{self.handle.value}>"
+
+	def __long__(self):
+		return self.handle.value
 
 	def register_buffer(self, buff, flags = 0):
 		# if self.handle is not None:
