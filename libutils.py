@@ -42,6 +42,10 @@ def get_cuda_libpath(*subdirs):
 					paths.append(path)
 					for subdir in subdirs:
 						paths.append(os.path.join(path, subdir))
+
+	if not paths:
+		raise CudaSupportError("CUDA toolkit could not be found")
+
 	return paths
 
 def get_cuda_pathvar():
@@ -55,6 +59,10 @@ def get_cuda_dir():
 	cuda_dir = os.environ.get('CUDA_HOME', '')
 	if not cuda_dir:
 		cuda_dir = os.environ.get('CUDA_PATH', '')
+		#TO DO
+			#look for version specific cuda paths
+		# if not cuda_dir:
+			# cuda_dir= os.environ.get('CUDA_PATH_V11_0', '')
 	return cuda_dir
 
 def get_file_candidates(paths, names):
