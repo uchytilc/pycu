@@ -8,7 +8,7 @@ CUDA made easy
 
 ## Intro
 
-PyCu provides ctypes bindings to the CUDA Driver API and is composed of a few libraries, each of which can be imported separately.
+PyCu provides ctypes bindings to the CUDA Driver API along with a few other CUDA related libraries, each of which can be imported separately.
 
 To access the direct API's of the Driver, NVRTC, or NVVM simply import any of the following
 
