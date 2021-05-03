@@ -26,7 +26,7 @@ from pycu.nvrtc import core as nvrtc
 from pycu.nvvm import core as nvvm
 ```
 
-If you want to import it all just import pycu as normal
+If you want to import it all import pycu
 
 ```
 import pycu
