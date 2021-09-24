@@ -1,4 +1,4 @@
-import ctypes
+import ctypes, _ctypes
 
 def is_class(cls):
 	try:
@@ -39,11 +39,14 @@ class Preparer:
 
 		for n in range(len(args)):
 			arg = args.pop(0)
-			
-			pycu_type = sig[n + 1]
-			if is_class(pycu_type):
-				pycu_type = pycu_type.construct(arg)
-			c_arg = pycu_type.as_ctypes()(arg)
+			if not isinstance(arg, (_ctypes._SimpleCData, _ctypes.Array, _ctypes._Pointer, _ctypes.Union, _ctypes.Structure))
+				#ctypes.Array, ctypes.Structure
+				pycu_type = sig[n + 1]
+				if is_class(pycu_type):
+					pycu_type = pycu_type.construct(arg)
+				c_arg = pycu_type.as_ctypes()(arg)
+			else:
+				c_arg = arg
 
 			#convert struct into a list of its members
 			if self.flatten:
