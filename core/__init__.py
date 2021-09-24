@@ -8,16 +8,6 @@ from pycu.nvvm.core import NVVMPtr, NVVM
 # from pycu.driver import (init, stream, opengl_resource, to_device, to_host, copy_to_device, copy_to_host, to_device_buffer,
 # 						 device_array, device_ndarray, device_buffer, pinned_buffer, pin_host_array, ContextManager)
 
-# # from .numba_extension.cudafuncs import *
-# from .numba_extension.mathfuncs import *
-# from .numba_extension import mathimpl #, cudaimpl
-
-# from .numba_extension.interval.intervaltype import interval
-# from .numba_extension.interval import intervalimpl
-
-# # from .numba_extension.vector.vectortype import *
-# # from .numba_extension.vector import vectorimpl
-
 context_manager = ContextManager()
 
 def get_current_context():
@@ -54,7 +44,8 @@ if auto_driver_init:
 		context_manager.set_current(pctx)
 
 #compiler needs the context_manager defined above
-from .compiler import compile_source
+from .jitify import Jitify
+from .compiler import compile_source, compile_file, jitify
 
 
 

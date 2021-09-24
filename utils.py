@@ -4,13 +4,16 @@ def open_file(path, mode = 'r'):
 	with open(path, mode) as source:
 		return source.read()
 
-def encode(data, typ = "utf8"):
-	return data.encode(typ)
+def encode(string, typ = "utf8"):
+	return string.encode(typ)
 
-def generate_hash(string):
-	if not isinstance(string, bytes):
-		string = string.encode()
+def generate_hash(data):
+	if not isinstance(data, (str, bytes)):
+		data = str(data)
+
+	if not isinstance(data, bytes):
+		data = data.encode()
 
 	m = hashlib.md5() #sha256
-	m.update(string)
+	m.update(data)
 	return m.hexdigest() #digest()

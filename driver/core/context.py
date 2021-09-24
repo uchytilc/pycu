@@ -1,4 +1,4 @@
-from pycu.driver import device_primary_ctx_retain, device_primary_ctx_release, ctx_set_current, ctx_synchronize
+from pycu.driver import device_primary_ctx_retain, device_primary_ctx_release, ctx_set_current, ctx_synchronize, ctx_create, ctx_destroy, ctx_push_current, ctx_pop_current
 
 import threading
 import weakref
@@ -10,9 +10,7 @@ class _ContextStack(threading.local):
 		self._stack = []
 
 	def __bool__(self):
-		if self._stack:
-			return True
-		return False
+		return bool(self._stack)
 
 	def push(self, ctx):
 		self._stack.append(ctx)
@@ -57,10 +55,10 @@ class ContextManager:
 	def __repr__(self):
 		return f"ContextManager()"
 
-	def create_context(self, dev, flags = None):
+	def create_context(self, dev, flags = 0):
 		return Context(dev, flags)
 
-	def retain_primary(self, dev, flags = None):
+	def retain_primary(self, dev, flags = 0):
 		pctx = self.__primary[dev]
 		if flags:
 			pctx.set_flags(flags)
@@ -244,7 +242,7 @@ class PrimaryContext(PrimaryContextPtr):
 
 class ContextPtr(_ContextBase):
 	def __init__(self, handle):
-		super().__init__(dev, flags)
+		super().__init__()
 
 		self.handle = handle
 
@@ -257,10 +255,10 @@ class ContextPtr(_ContextBase):
 
 class Context(ContextPtr):
 	def __init__(self, dev = 0, flags = 0):
-		super().__init__(dev, flags)
-
 		handle = ctx_create(dev, flags)
 		weakref.finalize(self, ctx_destroy, handle)
+
+		self.dev = dev
 
 		super().__init__(handle)
 

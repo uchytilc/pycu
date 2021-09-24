@@ -3,12 +3,15 @@
 # 	#use some compiler options as additional keys when storing ptx
 # 	#edit open_nvrtclib to include wind32
 
+#Add pycu to default include headers
+	#load from pycu/include
+
+
 
 # #test_cuda_driver.py
 # 	#https://github.com/numba/numba/blob/c5461dd295663559b55f7e59280df9317062887c/numba/cuda/tests/cudadrv/test_cuda_driver.py
 # #test_cuda_memory.py
 # 	# https://github.com/numba/numba/blob/e5364a3da418cffdb0de36238d0bb1346322118b/numba/cuda/tests/cudadrv/test_cuda_memory.py
-
 
 limits_h = climits = """
 	#pragma once
@@ -419,6 +422,7 @@ math_constants_h = """
 
 #endif /* !__MATH_CONSTANTS_H__ */
 """
+
 nvrtc_headers = {"limits.h":limits_h,
 				 "climits":climits,
 				 "stddef.h":stddef_h,
@@ -426,7 +430,3 @@ nvrtc_headers = {"limits.h":limits_h,
 				 "stdint.h":stdint_h,
 				 "stdint":stdint_h,
 				 "math_constants.h":math_constants_h}
-
-
-
-#add vectors

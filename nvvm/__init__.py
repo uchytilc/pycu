@@ -122,5 +122,3 @@ def lazy_add_module_to_program():
 def verify_program(program, options = (c_char_p * 0)()): #options = None
 	err = nvvm.nvvmVerifyProgram(program, len(options), options) #len(options) if options else 0
 	check_nvvm_error(err, "nvvmVerifyProgram error")
-
-from .core import *

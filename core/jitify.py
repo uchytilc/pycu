@@ -7,20 +7,43 @@ from pycu.nvrtc.core import NVRTC
 from pycu.nvvm.core import NVVM
 from pycu.utils import open_file, generate_hash
 
+import numpy as np
+import ctypes
 import os
 
-#this is not a real CUDA enum
+# 4.2.1.16. --cudart {none|shared|static} (-cudart)
+# Specify the type of CUDA runtime library to be used: no CUDA runtime library, shared/dynamic CUDA runtime library, or static CUDA runtime library.
+
+# Allowed Values
+# none
+# shared
+# static
+# Default
+# The static CUDA runtime library is used by default.
+
+# 4.2.1.17. --cudadevrt {none|static} (-cudadevrt)
+# Specify the type of CUDA device runtime library to be used: no CUDA device runtime library, or static CUDA device runtime library.
+
+# Allowed Values
+# none
+# static
+# Default
+# The static CUDA device runtime library is used by default.
+
+
+#these are not real CUDA enums
 CU_JIT_INPUT_FILEPATH = -1
+# CU_JIT_INPUT_SOURCE = -2
+# CU_JIT_INPUT_NVVM = -3
 
 def compile_options_as_str(options):
 	#converts option dict to string for hashing purposes
-
 	opts = []
 	for key in sorted(list(options.keys())):
 		val = options[key]
 		#convert list/tuple inputs to single string
 		if isinstance(val, (tuple, list)):
-			val = f"[{','.join(sorted(val))}]"
+			val = f"[{','.join([str(v) for v in sorted(val)])}]"
 		opts.append(f"{key}:{val}")
 	return f"[{','.join(opts)}]"
 
@@ -62,6 +85,8 @@ class Jitify:
 		
 		self.cubindir = os.path.join(jitdir, "cache")
 
+		#TO DO:
+			#make this thread specific and include context in key
 		self._compilation_queue = []
 
 	def reset(self):
@@ -96,11 +121,11 @@ class Jitify:
 	def add_fatbin(self, fatbin, name = '<pycu-fatbin>', CUjit_option = {}):
 		self._compilation_queue.append((CU_JIT_INPUT_FATBINARY, fatbin, name, CUjit_option))
 
-	def compile(self, key = None): #linker_options = {} 
+	def compile(self, linker_options = {}, module_options = {}, get_cubin = False):
 		logsize = 1024 #c_void_p
 		
 		linker_options = {
-			CU_JIT_INFO_LOG_BUFFER.value: None,  #addressof(_linker_info),
+			CU_JIT_INFO_LOG_BUFFER.value: None, #addressof(_linker_info),
 			CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES.value: logsize,
 			CU_JIT_ERROR_LOG_BUFFER.value: None, #addressof(_linker_errors)
 			CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES.value: logsize,
@@ -108,40 +133,23 @@ class Jitify:
 			CU_JIT_TARGET_FROM_CUCONTEXT.value: None
 		}
 
-		linker = Linker(linker_options)
+		linker = Linker(options = linker_options)
 
 		while self._compilation_queue:
 			jittype, data, name, CUjit_option = self._compilation_queue.pop(0)
-			if jittype == -1:
+			if jittype == CU_JIT_INPUT_FILEPATH:
 				linker.add_file(data, CUjit_option)
 			else:
+				# if jittype != CU_JIT_INPUT_LIBRARY:
+				# 	print('############')
+				# 	print(data)
 				linker.add_data(jittype, data, name, CUjit_option)
 
 		cubin, size = linker.complete()
 
-		#TO DO
-			#cache cubin
-		# cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-		# cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
-		# self.cubins[device.id] = cubin_data
-
-		# if cubin is not None and cache:
-		# 	self._cache["cubin"][key] = cubin
-
-		# if self.do_save:
-		# 	pass
-		# 	# # #if a dir has been given, save a cubin to disk
-		# 	# # if self.cubindir is not None and os.path.exists(self.cubindir):
-		# 	# # 	#write cubin to disk
-		# 	# # 	_cubin = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-		# 	# # 	cubin_name = "%s_%s"%(key, entry) 
-
-		# 	# # 	#TO DO
-		# 	# # 		#save the file entry point length and entry point as bits at the start of the cubin instead of in the name of the file
-
-		# 	# # 	with open('%s/%s.cubin'%(self.cubindir, cubin_name), 'wb') as file:
-		# 	# # 		for i in range(size):
-		# 	# # 			file.write(_cubin[i])
+		if get_cubin:
+			cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+			return bytes(np.ctypeslib.as_array(cubin_ptr, shape = (size,)))
 
 		# module_options = {
 		# 	CU_JIT_INFO_LOG_BUFFER: None,
@@ -152,14 +160,11 @@ class Jitify:
 		# }
 
 		#note: cubin must be turned into a module before the Linker is destroyed
-		module = Module(cubin) #module_options
+		module = Module(cubin) #, options = module_options
 
 		return module
 
 	def source_to_ptx(self, source, name = '<pycu-source>', nvrtc_options = {}):
-		nvrtc_options['default-device'] = nvrtc_options.get("default-device", True)
-		nvrtc_options['dc'] = nvrtc_options.get("dc", True)
-
 		#name_expression example: "kernel_name<float, float, int>", &kernel_name, ...
 		name_expressions = nvrtc_options.pop("name-expression", '')
 		if not isinstance(name_expressions, (list, tuple)):
@@ -206,3 +211,5 @@ class Jitify:
 				self.cache.ptx[key] = ptx
 
 		return ptx
+
+jitify = Jitify()

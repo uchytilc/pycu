@@ -1,17 +1,106 @@
-from pycu.nvrtc import create_program, compile_program, destroy_program, get_ptx, get_ptx_size, add_name_expression, get_lowered_name
+from pycu.nvrtc import create_program, compile_program, destroy_program, get_ptx, get_ptx_size, add_name_expression, get_lowered_name, get_libcudadevrt
 from pycu.utils import open_file
 
 from .nvrtc_headers import nvrtc_headers
 
+from enum import Enum, auto
 import os
 import sys
 from ctypes import c_char_p
 import weakref
 
-def single_or_multi_arg(opt, args):
-	if isinstance(args, str):
+def single_or_multi_arg(option, args):
+	if isinstance(args, tuple):
+		args = list(args)
+	if not isinstance(args, list):
 		args = [args]
-	return [opt.format(arg = arg) for arg in args]
+	for n, arg in enumerate(args):
+		if not isinstance(arg, str):
+			arg = str(arg)
+		if arg == 'True' or arg == 'False':
+			args[n] = arg.lower()
+
+	return [option.format(arg = arg) for arg in args]
+
+_remap_nvrtc_options = {"arch":"gpu-architecture",
+						"dc":"device-c",
+						"dw":"device-w",
+						"rdc":"relocatable-device-code",
+						"ewp":"extensible-whole-program",
+						"g":"device-debug",
+						"lineinfo":"generate-line-info",
+						"xptxas":"ptxas-options", #Xptxas
+						"dlto":"dlink-time-opt",
+						"d":"define-macro",
+						"u":"undefine-macro",
+						"i":"include-path",
+						"include":"pre-include",
+						"w":"disable-warnings",
+						"default-device":"device-as-default-execution-space",
+						"opt-info":"optimization-info",
+						"dq":"version-ident", #dQ
+						"err-no":"display-error-number"}
+
+#--{option}
+_options = {"device-c",
+			"device-w",
+			"extensible-whole-program",
+			"device-debug",
+			"generate-line-info",
+			"use_fast_math",
+			"extra-device-vectorization",
+			"dlink-time-opt",
+			"disable-warnings",
+			"restrict",
+			"device-as-default-execution-space",
+			"display-error-number"}
+
+#--{option}={args}
+_options_arg = {"gpu-architecture",
+				"relocatable-device-code",
+				"ptxsa-options",
+				"maxrregcount",
+				"ftz",
+				"prec-sqrt",
+				"prec-div",
+				"fmad",
+				"modify-stack-limit",
+				"define-macro",
+				"undefine-macro",
+				"include-path",
+				"pre-include",
+				"std",
+				"builtin-move-forward",
+				"builtin-initializer-list",
+				"optimization-info",
+				"version-ident",
+				"diag-error",
+				"diag-suppress",
+				"diag-warn"}
+
+def parse_nvrtc_options(options):
+	opts = []
+
+	for option, args in options.items():
+		option = option.replace("-"," ").strip().replace(" ","-").lower()
+		option = _remap_nvrtc_options.get(option, option)
+
+		if option in _options:
+			opts.append(f"--{option}")
+		elif option in _options_arg:
+			#The input for std and gpu-architecture needs to be formatted correctly if given as integers
+			if option == 'std':
+				if isinstance(args, int):
+					args = str(args)
+					args = args.zfill(2 - len(args))
+				if args[:3] != "c++":
+					args = f"c++{args}"
+			elif option == 'gpu-architecture':
+				if isinstance(args, int):
+					args = f'compute_{args}'
+			opts.extend(single_or_multi_arg(f"--{option}={{arg}}", args))
+
+	return opts
 
 class NVRTCPtr:
 	def __init__(self, handle):
@@ -116,91 +205,8 @@ class NVRTCPtr:
 				Treat entities with no execution space annotation as __device__ entities.
 		'''
 
-		arch = options.get("gpu-architecture", options.get("arch", 52))
-		dc = options.get("device-c", options.get("dc", False))
-		dw = options.get("device-w", options.get("dw", not dc))
-		rdc = options.get("relocatable-device-code", options.get("rdc", dw))
-		ftz = options.get("ftz", False)
-		prec_sqrt = options.get("prec-sqrt", True)
-		prec_div = options.get("prec-div", True)
-		fmad = options.get("fmad", True)
-		use_fast_math = options.get("use_fast_math", False)
-
-		opts = [f"--gpu-architecture=compute_{arch}",
-				f"--relocatable-device-code={rdc}".lower(),
-				f"--ftz={ftz}".lower(),
-				f"--prec-sqrt={prec_sqrt}".lower(),
-				f"--prec-div={prec_div}".lower(),
-				f"--fmad={fmad}".lower()]
-
-		#jitify default
-		if options.get("device-as-default-execution-space", options.get('default-device', True)): #False
-			opts.append("-default-device")
-
-		#TO DO
-			#make options checking less stupid (more efficient)
-		if options:
-			if options.get("use_fast_math", False):
-				opts.append("--use_fast_math")
-
-			ewp = options.get("extensible-whole-program", options.get("-ewp", False))
-			if ewp:
-				opts.append("--extensible-whole-program")
-
-			if options.get("device-debug", options.get('G', False)):
-				opts.append("-G")
-
-			if options.get("generate-line-info", options.get('lineinfo', False)):
-				opts.append("-lineinfo")
-
-			N = options.get("maxrregcount", 0)
-			if N:
-				opts.append(f"--maxrregcount={N}")
-
-			if options.get("extra-device-vectorization", False):
-				opts.append("--extra-device-vectorization")
-
-			D = options.get("define-macro", options.get('D', ""))
-			if D:
-				opts.extend(single_or_multi_arg("--define-macro={arg}", D))
-
-			U = options.get("undefine-macro", options.get('U', ""))
-			if U:
-				opts.extend(single_or_multi_arg("--undefine-macro={arg}", U))
-
-			I = options.get("include-path", options.get('I', ""))
-			if I:
-				opts.extend(single_or_multi_arg("--include-path={arg}", I))
-
-			header = options.get("pre-include", options.get('include', ""))
-			if header:
-				opts.extend(single_or_multi_arg("--pre-include={arg}", header))
-
-			std = options.get("std", "")
-			if std:
-				opts.append(f"--std={std}")
-
-			builtin_move_forward = options.get("builtin-move-forward", True)
-			if builtin_move_forward:
-				# if std == 'c++11':
-				opts.append(f"--builtin-move-forward={builtin_move_forward}".lower())
-				#else:
-					#raise warning
-
-			builtin_initializer_list = options.get("builtin-initializer-list", True)
-			if builtin_initializer_list:
-				# if std == 'c++11':
-				opts.append(f"--builtin-initializer-list={builtin_initializer_list}".lower())
-				#else:
-					#raise warning
-
-			if options.get("disable-warnings", options.get('w', False)):
-				opts.append("--disable-warnings")
-
-			if options.get("restrict", False):
-				opts.append("--restrict")
-
-		options = (c_char_p * len(opts))(*[c_char_p(opt.encode('utf8')) for opt in opts])
+		options = parse_nvrtc_options(options)
+		options = (c_char_p * len(options))(*[c_char_p(option.encode('utf8')) for option in options])
 		compile_program(self.handle, options)
 		return self.get_ptx()
 
@@ -235,13 +241,6 @@ class NVRTCCache:
 		self.headers.clear()
 		self.includes.clear()
 
-def _prepare_headers(headers):
-	#note: header names are the names exaclty how they appear in the c++ files
-	header_src   = (c_char_p * len(headers))(*[c_char_p(header.encode('utf8')) for header in headers.values()])
-	header_names = (c_char_p * len(headers))(*[c_char_p(name.encode('utf8')) for name in headers.keys()])
-
-	return header_src, header_names
-
 class NVRTC(NVRTCPtr):
 	cache = NVRTCCache()
 
@@ -256,7 +255,7 @@ class NVRTC(NVRTCPtr):
 		headers = {}
 		if load_headers:
 			headers.update(self.load_headers(source, I = I))
-		header_src, header_names = _prepare_headers(headers)
+		header_src, header_names = prepare_headers(headers)
 
 		source = source.encode('utf8')
 		name = name.encode('utf8')
@@ -281,20 +280,29 @@ class NVRTC(NVRTCPtr):
 			if not self.do_cache:
 				#create temporary cache to load headers
 				cache = NVRTCCache()
-			_load_headers(hpath, cache, loaded, [hdir] + I)
+			load_headers(hpath, cache, loaded, [hdir] + I)
 
 		#generate header name -> source mapping for NVRTC
 		headers = {}
 		while queue:
 			include, path = queue.pop(0)
+			# print(include, path)
 			headers[include] = cache.source[path]
 			for include, path in zip(cache.includes[path], cache.headers[path]):
 				if path not in headers:
 					queue.append((include, path))
 
+		# print(headers.keys())
 		return headers
 
-def _load_headers(path, nvrtc_cache, loaded, I = []):
+def prepare_headers(headers):
+	#note: header names are the names exaclty how they appear in the c++ files
+	header_src   = (c_char_p * len(headers))(*[c_char_p(header.encode('utf8')) for header in headers.values()])
+	header_names = (c_char_p * len(headers))(*[c_char_p(name.encode('utf8')) for name in headers.keys()])
+
+	return header_src, header_names
+
+def load_headers(path, nvrtc_cache, loaded, I = []):
 	#prevents infinite recursion with circular header dependencies
 	if path in loaded:
 		return
@@ -309,16 +317,16 @@ def _load_headers(path, nvrtc_cache, loaded, I = []):
 		nvrtc_cache.headers[path] = []
 		nvrtc_cache.includes[path] = []
 
+		# print(includes)
 		for include in includes:
 			hpath = find_header(include, I)
 			hdir  = hpath.rsplit(os.path.sep, 1)[0]
 
 			nvrtc_cache.headers[path].append(hpath)
 			nvrtc_cache.includes[path].append(include) 
-
 			#TO DO
 				#Do I want to maintain all directories as I move down dir chain?
-			_load_headers(hpath, nvrtc_cache, loaded, [hdir] + I[1:])
+			load_headers(hpath, nvrtc_cache, loaded, [hdir] + I[1:]) #[1:]
 
 def load_header(path):
 	#abs path to header file (if just a name check if it is a jitsafe header)
@@ -329,75 +337,437 @@ def load_header(path):
 	return source
 
 def find_header(include, paths):
+	# print(include)
 	if include in nvrtc_headers.keys():
 		return include
 	for path in paths:
-		hpath = os.path.join(path, include)
+		hpath = os.path.join(path, replace_include_separators(include))
 		if os.path.exists(hpath):
 			# subpath, *include = include.rsplit(os.path.sep, 1)
 			# if include:
 			# 	path = os.path.join(path, subpath)
 			return hpath
 	nl = '\n'
-	raise FileNotFoundError(f'{include} could not be found at any of the known paths {nl.join([path for path in paths])}')
+	raise FileNotFoundError(f'{include} could not be found at any of the known paths\n{nl.join([str(path) for path in paths])}')
 
-def get_includes(source):
-	#parse code loaded in for includes
+def replace_include_separators(header):
+	#replace `/` used wtihinin include with the os specific seperators so the file can be found
+	header = header.rsplit('/')
+	for _ in range(len(header)):
+		header.append(*(header.pop().rsplit('\\')))
+	header = f"{os.path.sep}".join(header)
 
-	#TO DO:
-		#Need to watch out for includes within compiler system defs (like _WIN32)
-			#if ifdef != system.os skip all lines until next ifdef or endif
-
-	lines = source.split('\n')
-	includes = []
-	for line in lines:
-		if "#include" in line:
-			header = get_include(line)
-			if header:
-				includes.append(header)
-
-	return includes
-
-def get_include(line):
-	#extracts include name from within the line and checks if it is within a comment
-	line, comment = clean_line(line)
-
-	#check if include statement used "" or <> and get name of header
-	header = line.split('"')
-	if len(header) - 1:
-		header = header[1]
-	else:
-		header = line.split('<', 1)[-1].split('>')[0]
 	return header
 
-def clean_line(line):
-	cmt, n = first_substring(line, ["//", "/*"])
+def get_includes(source):
+	#TODO
+		#defines should be kept for all headers included in a source file
+	parser = Parser(source)
+	parser.defines["__CUDACC__"] = None
 
-	if not cmt:
-		return line, []
+	return parser.get_includes()
 
-	line, comment = line.split(cmt, 1)
-	comment = cmt + comment
-	comments = [comment]
+class TokenType(Enum):
+	unknown = auto()
+	backslash = auto()
+	forwardslash = auto()
+	period = auto()
+	comma = auto()
+	asterisk = auto()
+	hashtag = auto()
+	exclamation = auto()
+	semicolon = auto()
+	colon = auto()
+	left_parenthesis = auto()
+	right_parenthesis = auto()
+	left_brace = auto()
+	right_brace = auto()
+	left_bracket = auto()
+	right_bracket = auto()
+	lt = auto()
+	gt = auto()
+	equal = auto()
+	le = auto()
+	ge = auto()
+	string = auto()
+	char = auto()
+	newline = auto()
+	text = auto()
+	numeric = auto()
+	end = auto()
 
-	#check if block comment ends in the same line it began (ex. code /*comment*/ more code)
-	if cmt == "/*" and '*/' in comment:
-		comment, _line = comment.rsplit('*/', 1)
-		comments = [comment + '*/']
-		_line, _comment = clean_line(_line)
-		line += _line
-		if _comment:
-			comments.extend(_comment)
+class Token:
+	def __init__(self, text, type):
+		self.text = text
+		self.type = type
 
-	return line, comments
+	@property
+	def length(self):
+		return len(self.text)
 
-def first_substring(string, substrings):
-	#finds first occurrence between all substrings
-	sub = ''
-	pos = len(string)
-	for substring in substrings:
-		n = string.find(substring)
-		if n > -1 and n < pos:
-			pos = n
-			sub = substring
-	return sub, pos
+	def __repr__(self):
+		return self.text
+
+	def __str__(self):
+		return self.text
+
+	def __eq__(self, other):
+		return self.text == other
+
+	def __hash__(self):
+		return hash(self.text)
+
+	# def __contains__(self, other):
+	# 	return other in self.
+
+class Tokenizer:
+	def __init__(self, source):
+		self.source = source
+		self.length = len(source)
+		self.pos = 0
+
+	@staticmethod
+	def is_EOL(char):
+		return (char == '\n') or (char == '\r')
+
+	@staticmethod
+	def is_whitespace(char):
+		return (char == ' ') or (char == '\t') or Tokenizer.is_EOL(char)
+
+	@staticmethod
+	def is_alpha(char):
+		return ('a' <= char and char <= 'z') or ('A' <= char and char <= 'Z')
+
+	@staticmethod
+	def is_number(char):
+		return '0' <= char and char <= '9'
+
+	@staticmethod
+	def is_numeric(char):
+		return Tokenizer.is_number(char) or char == '.' or char == 'e' or char == '+' or char == '-'
+
+	@staticmethod
+	def is_text(char):
+		return Tokenizer.is_alpha(char) or Tokenizer.is_number(char) or char == '_'
+
+	# def probe_ahead(self, count, skip_newline = True):
+		# #returns the next n tokens ahead of current token
+		# tokens = []
+		# pos = self.pos
+		# for n in range(count):
+		# 	tokens.append(self.get_token(skip_newline = skip_newline))
+		# self.pos = pos
+
+		# return tokens
+
+	def get_token(self, skip_newline = True):
+		#skip whitespace
+		while True:
+			if self.pos == self.length:
+				return Token('', TokenType.end)
+			elif self.is_whitespace(self.source[self.pos]):
+				self.pos += 1
+				if self.is_EOL(self.source[self.pos - 1]) and not skip_newline:
+					return Token(self.source[self.pos - 1], TokenType.newline)
+			#cpp style comment
+			elif self.pos < self.length - 1 and self.source[self.pos] == '/' and self.source[self.pos + 1] == '/':
+				#advance past the start comment
+				self.pos += 2
+				#parse until end of line
+				while self.pos < self.length and not self.is_EOL(self.source[self.pos]):
+					self.pos += 1
+			#c style comment
+			elif self.pos < self.length - 1 and self.source[self.pos] == '/' and self.source[self.pos + 1] == '*':
+				#advance past the start comment
+				self.pos += 2
+				while self.pos < self.length - 1 and self.source[self.pos] == '*' and self.source[self.pos + 1] == '/':
+					self.pos += 1
+				#advance past the end comment
+				if self.source[self.pos] == '*':
+					self.pos += 2
+			else:
+				break
+
+		start = self.pos
+		self.pos += 1
+		if start == self.length:
+			return Token('', TokenType.end)
+		elif self.source[start] == '\\':
+			return Token(self.source[start:self.pos], TokenType.backslash)
+		elif self.source[start] == '/':
+			return Token(self.source[start:self.pos], TokenType.forwardslash)
+		elif self.source[start] == '.':
+			return Token(self.source[start:self.pos], TokenType.period)
+		elif self.source[start] == ',':
+			return Token(self.source[start:self.pos], TokenType.comma)
+		elif self.source[start] == '*':
+			return Token(self.source[start:self.pos], TokenType.asterisk)
+		elif self.source[start] == '#':
+			return Token(self.source[start:self.pos], TokenType.hashtag)
+		elif self.source[start] == '!':
+			return Token(self.source[start:self.pos], TokenType.hashtag)
+		elif self.source[start] == ';':
+			return Token(self.source[start:self.pos], TokenType.semicolon)
+		elif self.source[start] == ':':
+			return Token(self.source[start:self.pos], TokenType.colon)
+		elif self.source[start] == '(':
+			return Token(self.source[start:self.pos], TokenType.left_parenthesis)
+		elif self.source[start] == ')':
+			return Token(self.source[start:self.pos], TokenType.right_parenthesis)
+		elif self.source[start] == '{':
+			return Token(self.source[start:self.pos], TokenType.left_brace)
+		elif self.source[start] == '}':
+			return Token(self.source[start:self.pos], TokenType.right_brace)
+		elif self.source[start] == '[':
+			return Token(self.source[start:self.pos], TokenType.left_bracket)
+		elif self.source[start] == ']':
+			return Token(self.source[start:self.pos], TokenType.right_bracket)
+		elif self.source[start] == '<':
+			if self.source[self.pos + 1] == '=':
+				self.pos += 1
+				return Token(self.source[start:self.pos], TokenType.le)
+			return Token(self.source[start:self.pos], TokenType.lt)
+		elif self.source[start] == '>':
+			if self.source[self.pos + 1] == '=':
+				self.pos += 1
+				return Token(self.source[start:self.pos], TokenType.ge)
+			return Token(self.source[start:self.pos], TokenType.gt)
+		elif self.source[start] == '=':
+			if self.source[self.pos + 1] == '=':
+				self.pos += 1
+				return Token(self.source[start:self.pos], TokenType.eq)
+			return Token(self.source[start:self.pos], TokenType.equal)
+		# elif self.source[start] == "'":
+			# start += 1
+			# self.pos += 2
+			# return Token(self.source[start:self.pos - 1], TokenType.char)
+		elif self.source[start] == '"':
+			start += 1
+			while self.pos < self.length and self.source[self.pos] != '"':
+				#avoid erroneous string ending of the string contains an escape character
+				if self.pos < self.length and self.source[self.pos] == "\\":
+					self.pos += 1
+				self.pos += 1
+			if self.pos == self.length:
+				return Token('', TokenType.end)
+			self.pos += 1
+			return Token(self.source[start:self.pos - 1], TokenType.string)
+		else:
+			if self.is_alpha(self.source[start]) or self.source[start] == '_':
+				while self.pos < self.length and self.is_text(self.source[self.pos]):
+					self.pos += 1
+				if self.pos == self.length:
+					return Token('', TokenType.end)
+				return Token(self.source[start:self.pos], TokenType.text)
+			#note: this only recognizes negative numbers of the - sign is next to the number
+			elif self.is_number(self.source[start]) or (self.source[start] == '.' and self.is_number(self.source[start + 1])) or (self.source[start] == '-' and self.is_number(self.source[start + 1])):
+				while self.pos < self.length and self.is_numeric(self.source[self.pos]):
+					self.pos += 1
+				if self.pos == self.length:
+					return Token('', TokenType.end)
+				return Token(self.source[start:self.pos], TokenType.numeric)
+			else:
+				return Token('', TokenType.unknown)
+
+#states
+inactive = 0
+active = 1
+complete = 2
+
+class Parser:
+	#A rudimentary parser which attempts to find all valid #include statements within a c source file
+
+	def __init__(self, source):
+		self.tokenizer = Tokenizer(source)
+		self.includes = []
+		self.defines = {}
+		self.state = [True]
+
+	def get_includes(self):
+		parse_source(self.tokenizer, self.includes, self.defines, self.state)
+		# print(self.includes)
+		return self.includes
+
+def if_conditional(tokenizer, defines):
+	token = tokenizer.get_token()
+
+	#TODO
+		#need to check for line wrapping character if conditional spans more than one line
+
+	tokens = []
+	while token.type != TokenType.newline:
+		tokens.append(token)
+		token = tokenizer.get_token(skip_newline = False)
+
+	if len(tokens) == 1:
+		pass
+		#check if true, false, 0, 1
+	else:
+		pass
+		#TODO
+			#handle more complex define statements
+		#if defined(...)
+
+	return False
+
+def ifdef_conditional(tokenizer, defines):
+	return tokenizer.get_token() in defines
+
+def ifndef_conditional(tokenizer, defines):
+	return not ifdef_conditional(tokenizer, defines)
+
+def undefine(tokenizer, defines):
+	token = tokenizer.get_token()
+	defines.remove(tokenizer.get_token().text)
+
+def define(tokenizer, defines):
+	token = tokenizer.get_token()
+
+	#TODO
+		#need to check for line wrapping character if define spans more than one line
+
+	tokens = []
+	while token.type != TokenType.newline:
+		tokens.append(token)
+		token = tokenizer.get_token(skip_newline = False)
+
+	if len(tokens) == 1:
+		defines[tokens[0].text] = None
+	elif len(tokens) == 2:
+		defines[tokens[0].text] = tokens[1].text
+	else:
+		pass
+		#TODO
+			#handle more complex define statements
+
+def add_include(tokenizer, includes):
+	token = tokenizer.get_token()
+	if token.type == TokenType.lt:
+		token = tokenizer.get_token()
+		include = []
+		while token != ">":
+			include.append(token.text)
+			token = tokenizer.get_token()
+		includes.append(''.join(include))
+	elif token.type == TokenType.string:
+		includes.append(token.text)
+	# else:
+		# raise ValueError("include not understood")
+
+def preprocessor_macro(tokenizer, includes, defines, state):
+	#next token should be the preprocessor operation
+	token = tokenizer.get_token()
+
+	if token in {'if', 'ifdef', 'ifndef'}:
+		#a given conditional parses from the entrence (if, ifdef, ifndef) until endif. If another if, ifdef, ifndef
+		#is reached before the previous endif, a recursive call is made that itself advances until it finds an endif.
+		#This will progress the parent function past the internal endif so it will not exit.
+
+		#asses the truthness of the start of the conditional if it is within another active conditional (or the top most conditional)
+		if state[-1] == active:
+			if token == 'if':
+				state.append(if_conditional(tokenizer, defines))
+			elif token == 'ifdef':
+				state.append(ifdef_conditional(tokenizer, defines))
+			elif token == 'ifndef':
+				state.append(ifndef_conditional(tokenizer, defines))
+		else:
+			state.append(Complete)
+		parse_source(tokenizer, includes, defines, state)
+	elif token in {'elif', 'else'} and state[-1] != complete:
+		#a previous conditional was true and the conditional is complete
+		if state[-1] == active:
+			state[-1] = complete
+		else:
+			#asses the truthness of the start of the conditional if a previous conditional was not satisfied
+			if token == 'elif':
+				state[-1] = if_conditional(tokenizer, defines)
+			elif token == 'else':
+				state[-1] = active
+	elif token == 'endif':
+		state.pop()
+	elif token == "include" and state[-1] == active:
+		add_include(tokenizer, includes)
+	elif token == "define" and state[-1] == active:
+		define(tokenizer, defines)
+	elif token == "undef" and state[-1] == active:
+		undefine(tokenizer, defines)
+	# else:
+		# pass
+
+def parse_source(tokenizer, includes, defines, state):
+	while True:
+		token = tokenizer.get_token()
+		# print(f"{token}			{token.type}")
+
+		#reached end of source
+		if token.type == TokenType.end:
+			break
+		#entered a preprocessor statement
+		elif token.type == TokenType.hashtag:
+			preprocessor_macro(tokenizer, includes, defines, state)
+		# else:
+			# pass
+
+
+# def get_includes(source):
+# 	#parse code loaded in for includes
+
+# 	#TO DO:
+# 		#Need to watch out for includes within compiler system defs (like _WIN32)
+# 			#if ifdef != system.os skip all lines until next ifdef or endif
+
+# 	lines = source.split('\n')
+# 	includes = []
+# 	for line in lines:
+# 		if "#include" in line:
+# 			header = get_include(line)
+# 			if header:
+# 				includes.append(header)
+
+# 	return includes
+
+# def get_include(line):
+# 	#extracts include name from within the line and checks if it is within a comment
+# 	line, comment = clean_line(line)
+
+# 	#check if include statement used "" or <> and get name of header
+# 	header = line.split('"')
+# 	if len(header) - 1:
+# 		header = header[1]
+# 	else:
+# 		header = line.split('<', 1)[-1].split('>')[0]
+# 	return header
+
+# def clean_line(line):
+# 	cmt, n = first_substring(line, ["//", "/*"])
+
+# 	if not cmt:
+# 		return line, []
+
+# 	line, comment = line.split(cmt, 1)
+# 	comment = cmt + comment
+# 	comments = [comment]
+
+# 	#check if block comment ends in the same line it began (ex. code /*comment*/ more code)
+# 	if cmt == "/*" and '*/' in comment:
+# 		comment, _line = comment.rsplit('*/', 1)
+# 		comments = [comment + '*/']
+# 		_line, _comment = clean_line(_line)
+# 		line += _line
+# 		if _comment:
+# 			comments.extend(_comment)
+
+# 	return line, comments
+
+# def first_substring(string, substrings):
+# 	#finds first occurrence between all substrings
+# 	sub = ''
+# 	pos = len(string)
+# 	for substring in substrings:
+# 		n = string.find(substring)
+# 		if n > -1 and n < pos:
+# 			pos = n
+# 			sub = substring
+# 	return sub, pos
+

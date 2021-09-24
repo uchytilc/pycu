@@ -40,8 +40,10 @@ class NVVMPtr:
 		return ir_version()
 
 	def add_module(self, buff, name = "<unnamed>"):
-		buff = buff.encode('utf8')
-		name = name.encode('utf8')
+		if isinstance(buff, str):
+			buff = buff.encode('utf8')
+		if isinstance(name, str):
+			name = name.encode('utf8')
 		size = len(buff)
 
 		add_module_to_program(self.handle, buff, size, name)
@@ -59,19 +61,18 @@ class NVVMPtr:
 				3 (default, enable optimizations)
 
 			-arch=
-				compute_30 (default)
-				compute_32
 				compute_35
 				compute_37
 				compute_50
-				compute_52
+				compute_52 (default)
 				compute_53
 				compute_60
 				compute_61
 				compute_62
 				compute_70
 				compute_72
-
+				compute_75
+				compute_80
 			-ftz=
 				0 (default, preserve denormal values, when performing single-precision floating-point operations)
 				1 (flush denormal values to zero, when performing single-precision floating-point operations)
@@ -94,7 +95,7 @@ class NVVMPtr:
 		"""
 
 		opt = options.get("opt", 3)
-		arch = options.get("arch", 30)
+		arch = options.get("arch", 52)
 		ftz = options.get("ftz", 0)
 		prec_sqrt = options.get("prec_sqrt", 1)
 		prec_div = options.get("prec_div", 1)

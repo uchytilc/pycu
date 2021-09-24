@@ -145,9 +145,13 @@ class LinkerPtr:
 		self._keep_alive.extend(keep_alive)
 		# del options
 
+		if isinstance(ptx, str):
+			ptx = ptx.encode('utf8')
+		if isinstance(name, str):
+			name = name.encode('utf8')
+
 		size = len(ptx)
-		data = c_char_p(ptx.encode('utf8'))
-		name = name.encode('utf8')
+		data = c_char_p(ptx)
 
 		link_add_data(self.handle, CU_JIT_INPUT_PTX, data, size, name, optkeys, optvals)
 		self._keep_alive.extend([ptx, name, optkeys, optvals])
@@ -174,9 +178,11 @@ class LinkerPtr:
 		self._keep_alive.extend(keep_alive)
 		# del options
 
+		if isinstance(name, str):
+			name = name.encode('utf8')
+
 		size = len(lib)
 		data = c_char_p(lib)
-		name = name.encode('utf8')
 
 		link_add_data(self.handle, CU_JIT_INPUT_LIBRARY, data, size, name, optkeys, optvals)
 		self._keep_alive.extend([lib, name, optkeys, optvals])
@@ -226,13 +232,13 @@ class LinkerPtr:
 		return cubin, size
 
 class Linker(LinkerPtr):
-	def __init__(self, options = {}):
-
+	def __init__(self, options = {}, auto_free = True):
 		optkeys, optvals, self._keep_alive = prepare_options(options)
 		# del options
 
 		handle = link_create(optkeys, optvals)
-		weakref.finalize(self, link_destroy, handle)
+		if auto_free:
+			weakref.finalize(self, link_destroy, handle)
 
 		super().__init__(handle)
 
@@ -259,7 +265,7 @@ class ModulePtr:
 		return module_get_tex_ref(self.handle, name.encode('utf8'))
 
 class Module(ModulePtr):
-	def __init__(self, image, options = {}):
+	def __init__(self, image, options = {}, auto_free = True):
 		#module_load_fat_binary
 		loader = module_load_data
 		opt = []
@@ -270,7 +276,8 @@ class Module(ModulePtr):
 			# self._keep_alive.extend(keep_alive)
 
 		handle = loader(image, *opt)
-		weakref.finalize(self, module_unload, handle)
+		if auto_free:
+			weakref.finalize(self, module_unload, handle)
 
 		super().__init__(handle)
 

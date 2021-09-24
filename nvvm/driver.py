@@ -66,7 +66,7 @@ class Driver(object):
 
 #key: arch associated with libdevice (None indicates libdevice is not arch specific)
 #value: libdevice source
-_libdevice = {}
+_libdevice_cache = {}
 
 #key:given arch
 #value: closest available arch found
@@ -75,12 +75,12 @@ _searched_arch = {}
 def get_libdevice(arch = None):
 	#known_archs example:
 		#arch = [None,20,30,35,50]
-	global _libdevice, _searched_arch
+	global _libdevice_cache, _searched_arch
 
-	lib = _libdevice.get(arch, None)
+	lib = _libdevice_cache.get(arch, None)
 	if lib is None:
 		#note: use False instead of None in searched_arch.get when indicating failure to prevent getting None key from libdevice (libdevice with no "compute_" is stored under None key)
-		lib = _libdevice.get(_searched_arch.get(arch, False), None)
+		lib = _libdevice_cache.get(_searched_arch.get(arch, False), None)
 	if lib is None:
 		libdevice = find_libdevice()
 		#sort with None at the end
@@ -89,7 +89,7 @@ def get_libdevice(arch = None):
 		lib = open_file(libdevice[found_arch], 'rb')
 		#cache found libdevice and arch
 		_searched_arch[arch] = found_arch
-		_libdevice[arch] = lib
+		_libdevice_cache[arch] = lib
 
 	return lib
 

@@ -621,6 +621,53 @@ def API_PROTOTYPES_11020():
 
 	return api
 
+
+# https://docs.nvidia.com/cuda/archive/11.2.0/cuda-driver-api/index.html
+# https://docs.nvidia.com/cuda/archive/11.2.1/cuda-driver-api/index.html
+# https://docs.nvidia.com/cuda/archive/11.2.2/cuda-driver-api/index.html
+# https://docs.nvidia.com/cuda/archive/11.3.0/cuda-driver-api/index.html
+
+
+def API_PROTOTYPES_11021():
+	#TO DO
+		#implement prototypes
+
+	api = {}
+
+	api.update(API_PROTOTYPES_11020())
+
+	return api
+
+def API_PROTOTYPES_11022():
+	#TO DO
+		#implement prototypes
+
+	api = {}
+
+	api.update(API_PROTOTYPES_11021())
+
+	return api
+
+def API_PROTOTYPES_11030():
+	#TO DO
+		#implement prototypes
+
+	api = {}
+
+	api.update(API_PROTOTYPES_11022())
+
+	return api
+
+def API_PROTOTYPES_11040():
+	#TO DO
+		#implement prototypes
+
+	api = {}
+
+	api.update(API_PROTOTYPES_11030())
+
+	return api
+
 #note: used to determine which API_PROTOTYPE to load. Calling cuDriverGetVersion does not require initializing the driver
 VERSION_PROTOTYPE = ("cuDriverGetVersion", (CUresult, POINTER(c_int)))
 
@@ -633,4 +680,8 @@ API_PROTOTYPES = { 8000:API_PROTOTYPES_08000,
 				  10020:API_PROTOTYPES_10020,
 				  11000:API_PROTOTYPES_11000,
 				  11010:API_PROTOTYPES_11010,
-				  11020:API_PROTOTYPES_11020}
+				  11020:API_PROTOTYPES_11020,
+				  11021:API_PROTOTYPES_11021,
+				  11022:API_PROTOTYPES_11022,
+				  11030:API_PROTOTYPES_11030,
+				  11040:API_PROTOTYPES_11040}

@@ -1,23 +1,28 @@
 # from pycu.core.py_allocator import py_malloc, py_free
 from pycu.driver import (mem_alloc, mem_free, memcpy_dtoh, memcpy_dtoh_async, memcpy_htod, memcpy_htod_async,
-						mem_alloc_host, mem_free_host, mem_host_register, mem_host_unregister) #cuMemsetD8, cuMemsetD8Async, cuMemsetD16, cuMemsetD16Async, cuMemsetD32, cuMemsetD32Async
-
-from pycu.driver.core import ArgPreparer, unsupported_type
+						 mem_alloc_host, mem_free_host, mem_host_register, mem_host_unregister,
+						 CUdeviceptr)
+						#cuMemsetD8, cuMemsetD8Async, cuMemsetD16, cuMemsetD16Async, cuMemsetD32, cuMemsetD32Async
 
 import numpy as np
 import ctypes
 import weakref
 import warnings
 
+# _CData = ctypes._SimpleCData.__mro__[-2]
+
 def get_handle(obj):
 	#TO DO
 		#change get_handle to use/get a memory veiw of the input memory
-			#this allows for any input memory, not just numpy arrays or pycu arrays
+			#this allows for any input memory, not just numpy arrays, ctypes objects, or pycu arrays
 
 	if isinstance(obj, np.ndarray):
 		handle = obj.ctypes.get_data()
 		# ctype = np.ctypeslib.as_ctypes_type(self.dtype)
 		# dst = h_ary.ctypes.data_as(ctypes.POINTER(ctype))
+	elif isinstance(obj, (ctypes._SimpleCData, ctypes._Pointer,
+						  ctypes.Array, ctypes.Structure, ctypes.Union)): #isinstance(obj, _CData)
+		handle = ctypes.addressof(obj)
 	else:
 		handle = obj.handle
 	return handle
@@ -79,32 +84,50 @@ class CuBufferPtr:
 
 		# memset(*args)
 
+
 class CuBuffer(CuBufferPtr):
-	def __init__(self, size, dtype):
-
-		self.dtype = np.dtype(dtype)
-		self.size = size
-
+	def __init__(self, nbytes, auto_free = True):
+		self.nbytes = nbytes
 		handle = mem_alloc(self.nbytes)
-		weakref.finalize(self, mem_free, handle)
+		if auto_free:
+			weakref.finalize(self, mem_free, handle)
 
 		super().__init__(handle)
 
 	def __repr__(self):
-		return f"CuBuffer({self.size}, {self.dtype}) <{self.handle}>"
+		return f"CuBuffer({self.nbytes}) <{self.handle}>"
+
+	def copy_to_host(self, dst = None, nbytes = 0, offset = 0, stream = 0):
+		nbytes = nbytes if nbytes else self.nbytes
+		return super().copy_to_host(dst, nbytes, offset, stream)
+
+	def copy_from_host(self, src, nbytes = 0, offset = 0, stream = 0):
+		nbytes = nbytes if nbytes else self.nbytes
+		super().copy_from_host(src, nbytes, offset, stream)
+
+	# def memset(self, value, size = 0, stream = 0):
+		# # args = [self.handle, value, size] #self.handle + offset
+		# size = size if size else self.size
+
+		# super().memset(value, size, self.itemsize, stream)
+
+class CuArray(CuBuffer):
+	def __init__(self, size, dtype, *args, **kwargs):
+
+		self.size = size
+		self.dtype = np.dtype(dtype)
+
+		super().__init__(self.dtype.itemsize*self.size, *args, **kwargs)
+
+	def __repr__(self):
+		return f"CuArray({self.size}, {self.dtype}) <{self.handle}>"
 
 	@property
 	def itemsize(self):
 		return self.dtype.itemsize
 
 	@property
-	def nbytes(self):
-		return self.itemsize*self.size
-
-	def astype(self, dtype):
-		self.cast(dtype)
-
-	def cast(self, dtype):
+	def view(self, dtype):
 		dtype = np.dtype(dtype)
 
 		if self.dtype != dtype:
@@ -112,11 +135,10 @@ class CuBuffer(CuBufferPtr):
 				self.size = self.nbytes//dtype.itemsize
 				self.dtype = dtype
 			else:
-				raise ValueError('dtype does not fit buffer itemsize')
+				raise ValueError('dtype does not fit buffer size')
 
 	def copy_to_host(self, dst = None, nbytes = 0, offset = 0, stream = 0):
-		if not nbytes:
-			nbytes = self.nbytes
+		nbytes = nbytes if nbytes else self.nbytes
 
 		# if nbytes%self.itemsize:
 			# raise ValueError('')
@@ -130,21 +152,20 @@ class CuBuffer(CuBufferPtr):
 
 		return super().copy_to_host(dst, nbytes, offset, stream)
 
-	def copy_from_host(self, src, nbytes = 0, offset = 0, stream = 0):
-		if not nbytes:
-			nbytes = self.nbytes
-
-		super().copy_from_host(src, nbytes, offset, stream)
-
 	def memset(self, value, size = 0, stream = 0):
-		if not size:
-			size = self.size
+		size = size if size else self.size
 
 		super().memset(self.dtype.type(value), size, self.itemsize, stream)
 
 	# def to_device_array(self, shape, dtype = np.float32, strides = None, order = 'C'):
 		# #to_cundarray()
 		# pass
+
+
+
+
+
+
 
 def _is_contiguous(shape, strides, itemsize):
 	for shape, stride in zip(shape, strides):
@@ -205,9 +226,9 @@ class CuNDArray:
 			raise ValueError('CuNDArray size must be larger than 0.')
 
 		if not is_contiguous(self.shape, self.strides, self.itemsize):
-			raise ValueError('The shape and stride provided are not compatible')
+			raise ValueError(f'The shape and stride provided to {self} are not compatible')
 
-		self._buff = CuBuffer(self.size, self.dtype)
+		self._buff = CuArray(self.size, self.dtype)
 
 	def __iter__(self):
 		return iter([self])
@@ -215,15 +236,11 @@ class CuNDArray:
 	@property
 	def __cuda_array_interface__(self):
 		return {'shape': tuple(self.shape),
-				'strides': None if is_contiguous(self) else tuple(self.strides),
-				'data': (self.handle, False),
+				'strides': None if is_contiguous(self.shape, self.strides, self.itemsize) else tuple(self.strides),
 				'typestr': self.dtype.name,
-				'version': 2}
-
-	# @property
-	# def _pycu_type_(self):
-		# import pycu #.core.types
-		# return pycu.core.cuarray(self.ndim, pycu.core.dtype(self.dtype))
+				'descr': self.dtype.descr,
+				'data': (self.handle, False),
+				'version': 3}
 
 	@property
 	def itemsize(self):
@@ -231,6 +248,10 @@ class CuNDArray:
 
 	@property
 	def handle(self):
+		return self._buff.handle
+
+	@property
+	def device_pointer(self):
 		return self._buff.handle
 	
 	@property
@@ -559,11 +580,19 @@ class IPCHandle:
 
 
 
-def to_device(ndarray, stream = 0):
+def to_device_ndarray(ndarray, stream = 0):
 	order = "F" if ndarray.flags.fnc else 'C'
 	d_ndarray = CuNDArray(ndarray.shape, ndarray.dtype, ndarray.strides, order)
 	d_ndarray.copy_from_host(ndarray, stream = stream)
 	return d_ndarray
+
+def to_device(ndarray, stream = 0):
+	return to_device_ndarray(ndarray, stream)
+
+def to_device_array(array, stream = 0, auto_free = True):
+	d_buff = CuArray(array.size, array.dtype, auto_free)
+	d_buff.copy_from_host(array, stream = stream)
+	return d_buff
 
 def to_host(d_ary, stream = 0, nbytes = 0, offset = 0):
 	return d_ary.copy_to_host(stream = stream, nbytes = nbytes, offset = offset)
@@ -574,16 +603,15 @@ def copy_to_device(*args, **kwargs):
 def copy_to_host(*args, **kwargs):
 	return to_host(*args, **kwargs)
 
-def to_device_buffer(ndarray, stream = 0):
-	d_buff = CuBuffer(ndarray.size, dtype = ndarray.dtype)
-	d_buff.copy_from_host(ndarray, stream = stream)
-	return d_buff
 
-def device_buffer(size, dtype = np.float32):
-	return CuBuffer(size, dtype)
+def device_buffer_ptr(handle):
+	return CuBufferPtr(handle)
 
-def device_array(shape, dtype = np.float32):
-	return CuNDArray(shape, dtype)
+def device_buffer(nbytes, auto_free = True):
+	return CuBuffer(nbytes, auto_free)
+
+def device_array(size, dtype = np.float32, auto_free = True):
+	return CuArray(size, dtype, auto_free)
 
 def device_ndarray(shape, dtype = np.float32):
 	return CuNDArray(shape, dtype)
@@ -594,62 +622,9 @@ def pinned_buffer(size, dtype, flags = 0):
 def pin_host_array(h_ary, flags = 0): #nbytes = 0, flags = 0, offset = 0
 	return PinnedBuffer(h_ary, flags = flags)
 
-
-
-def _cubuffer_type(typ, arg):
-	return arg.handle
-
-def _cundarray_type(typ, arg):
-	pass
-	# fields = [("meminfo", pointer(int8)), #pointer(int8) #pointer(void)
-	# 		  ("parent", pointer(int8)), #pointer(int8) #pointer(void)
-	# 		  ("nitems", ssize_t),
-	# 		  ("itemsize", ssize_t),
-	# 		  ("data", pointer(dtype)), #pointer(float32) #pointer(void)
-	# 		  ("shape", ShapeStride(ndim)), #Pointer(ShapeStride(ndim)) #Array(ndim, ssize_t)
-	# 		  ("strides", ShapeStride(ndim))] #Pointer(ShapeStride(ndim)) #Array(ndim, ssize_t)
-
-	# class ShapeStride(Tuple):
-		# def __init__(self, ndim):
-		# 	self.ndim = ndim
-
-		# 	####################
-		# 	members = ['x','y','z']
-		# 	members = members[:ndim]
-		# 	if ndim > 3:
-		# 		members = generate_member_name(ndim)
-		# 	####################
-
-		# 	fields = [(members[n], ssize_t) for n in range(ndim)]
-
-		# 	super().__init__(fields)
-
-		# def _construct_ctypes_values(self, fields, shape_stride):
-		# 	if not isinstance(shape_stride, (list, tuple, np.ndarray)):
-		# 		raise ValueError('Not supported')
-
-		# 	return {field[0]:val for field, val in zip(self.fields, shape_stride)}
-
-ArgPreparer.add_preparer(CuBufferPtr, _cubuffer_type)
-ArgPreparer.add_preparer(CuBuffer, _cubuffer_type)
-ArgPreparer.add_preparer(CuNDArray, _cundarray_type)
-# ArgPreparer.push_type(Cu1DArray, None)
-# ArgPreparer.push_type(Cu2DArray, None)
-# ArgPreparer.push_type(Cu3DArray, None)
-
-
-
-
-
-
-
-
-# def device_1darray(shape, dtype = float32):
-	# return Cu1DArray(shape, dtype)
-
-# def device_2darray(shape, dtype = float32):
-	# return Cu2DArray(shape, dtype)
-
-# def device_3darray(shape, dtype = float32):
-	# return Cu3DArray(shape, dtype)
-
+#buff
+#ary
+#ary1d
+#ary2d
+#ary3d
+#arynd

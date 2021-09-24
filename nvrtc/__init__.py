@@ -1,4 +1,4 @@
-from .driver import Driver
+from .driver import Driver, get_libcudadevrt
 from .api import API_PROTOTYPES
 # from .enums import *
 from .typedefs import nvrtcProgram

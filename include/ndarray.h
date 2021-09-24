@@ -5,15 +5,21 @@
 
 template<typename T>
 typedef struct {
-    void*    meminfo; //pointer(int8)
-    void*    parent;  //pointer(int8)
-    intptr_t nitems;
-    size_t   itemsize = sizeof(T);
+    void*    meminfo = 0;
+    void*    parent = 0;
+    ssize_t  nitems;
+    ssize_t  itemsize = sizeof(T);
     T*       data;
-    size_t   dim; 
-    intptr_t shape;
-    intptr_t strides;
+    size_t   dim;
+    // intptr_t shape; #c_ssize_t
+    // intptr_t strides;
 } ndarray;
+
+
+// [(f'shape{dim_ext[(ax + 22)%25]*(ax//25 + 1)}', ctypes.c_ssize_t) for ax in range(ndim)] + \
+// [(f'stirdes{dim_ext[(ax + 22)%25]*(ax//25 + 1)}', ctypes.c_ssize_t) for ax in range(ndim)]
+
+
 
 // npy_intp shape_and_strides[];
 

@@ -44,7 +44,7 @@ def get_cuda_libpath(*subdirs):
 						paths.append(os.path.join(path, subdir))
 
 	if not paths:
-		raise CudaSupportError("CUDA toolkit could not be found")
+		raise CudaSupportError("No CUDA Path was found")
 
 	return paths
 

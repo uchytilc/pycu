@@ -18,7 +18,7 @@ def find_driver():
 
 	if sys.platform == 'win32':
 		loader = ctypes.WinDLL
-		paths.append('C:\\windows\\system32')
+		paths.append('\\windows\\system32')
 		names = ['nvcuda.dll']
 	# elif sys.platform == 'darwin': #OS x
 		# loader = ctypes.CDLL
