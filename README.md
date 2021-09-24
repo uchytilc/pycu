@@ -38,7 +38,7 @@ pycu also has its own "core" which contains Jitity, a compiler that uses NVRTC a
 from pycu import core as pycu
 ```
 
-Currently ```import pycu``` will auto import all of the above packages including ```pycy.core``` but this can be turned off (and may be turned of by defualt in the future) if only a select few of the functionalities are needed. This is a project I started developing in order to work on something else. Almost the entirity of the Driver API currently has a corrisponding python binding. The missing bindings are primarily related to the lesser used features (at least for me) like the graph API. There are a number of incomplete features as of right now, almost all related to the higher level Python API. They are mostly implemented as I need them.
+Currently ```import pycu``` will auto import all of the above packages including ```pycu.core``` but this can be turned off (and may be turned of by defualt in the future) if only a select few of the functionalities are needed. This is a project I started developing in order to work on something else. Almost the entirity of the Driver API currently has a corrisponding python binding. The missing bindings are primarily related to the lesser used features (at least for me) like the graph API. There are a number of incomplete features as of right now, almost all related to the higher level Python API. They are mostly implemented as I need them.
 
 ## Examples
 
