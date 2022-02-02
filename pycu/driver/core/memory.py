@@ -634,10 +634,6 @@ def copy_to_device(*args, **kwargs):
 def copy_to_host(*args, **kwargs):
 	return to_host(*args, **kwargs)
 
-
-def device_buffer_ptr(handle):
-	return CuBufferPtr(handle)
-
 def device_buffer(nbytes, auto_free = True):
 	return CuBuffer(nbytes, auto_free = auto_free)
 
