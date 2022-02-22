@@ -27,7 +27,7 @@ def normalize_griddim_blockdim(griddim, blockdim):
 	return griddim, blockdim
 
 class Kernel:
-	def __init__(self, handle, prepare = True, griddim = None, blockdim = None, stream = 0, sharedmem = 0):
+	def __init__(self, handle, prepare = True, griddim = None, blockdim = None, sharedmem = 0, stream = 0):
 		self.handle = handle
 		#If a signature is provided, the inputs are parsed and converted
 		#to the proper type for the kernel call. If the signature is not
@@ -38,7 +38,7 @@ class Kernel:
 
 	def configure(self, griddim, blockdim, stream = 0, sharedmem = 0):
 		self.griddim, self.blockdim = normalize_griddim_blockdim(griddim, blockdim)
-		self.stream = stream #stream.handle is isinstance(stream, Stream) else stream
+		self.stream = stream
 		self.sharedmem = sharedmem
 
 	def launch(self, *args):
@@ -69,7 +69,6 @@ class Kernel:
 		if len(config) not in [2, 3, 4]:
 			raise ValueError('must specify at least the griddim and blockdim')
 		return Kernel(self.handle, self.prepare, *config)
-		# self.configure(*config)
 		# return self
 
 	def __call__(self, *args):

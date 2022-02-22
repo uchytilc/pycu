@@ -17,6 +17,8 @@ if include_numba_extentions:
 	from .numba_extension.vector.vectorfuncs import *
 
 
+def div_up(x, y):
+	return (x + y - 1)//y
 
 
 # https://gamedevelopment.tutsplus.com/articles/forward-rendering-vs-deferred-rendering--gamedev-12342
