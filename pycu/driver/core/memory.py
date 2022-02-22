@@ -620,10 +620,10 @@ def to_device_ndarray(ndarray, stream = 0):
 def to_device(ndarray, stream = 0):
 	return to_device_ndarray(ndarray, stream)
 
-def to_device_array(array, stream = 0, auto_free = True):
-	d_buff = CuArray(array.size, array.dtype, auto_free)
-	d_buff.copy_from_host(array, stream = stream)
-	return d_buff
+def to_device_array(ary, stream = 0, auto_free = True):
+	d_ary = CuArray(ary.size, ary.dtype, auto_free = auto_free)
+	d_ary.copy_from_host(ary, stream = stream)
+	return d_ary
 
 def to_host(d_ary, stream = 0, nbytes = 0, offset = 0):
 	return d_ary.copy_to_host(stream = stream, nbytes = nbytes, offset = offset)
