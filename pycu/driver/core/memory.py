@@ -179,6 +179,9 @@ class CuArray(CuBuffer):
 	def __repr__(self):
 		return f"CuArray({self.size}, {self.dtype}) <{self.handle}>"
 
+	def __len__(self):
+		return self.size
+
 	@property
 	def itemsize(self):
 		return self.dtype.itemsize
