@@ -34,12 +34,12 @@ class Kernel:
 		#provided it is left up to the user to pass in the correct input
 		#arguments in the correct types
 		self.prepare = prepare
-		self.configure(griddim, blockdim, stream, sharedmem)
+		self.configure(griddim, blockdim, sharedmem, stream)
 
-	def configure(self, griddim, blockdim, stream = 0, sharedmem = 0):
+	def configure(self, griddim, blockdim, sharedmem = 0, stream = 0):
 		self.griddim, self.blockdim = normalize_griddim_blockdim(griddim, blockdim)
-		self.stream = stream
 		self.sharedmem = sharedmem
+		self.stream = stream
 
 	def launch(self, *args):
 		launch_kernel(self.handle, self.griddim, self.blockdim, args, self.sharedmem, self.stream.handle if self.stream else 0)

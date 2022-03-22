@@ -76,6 +76,9 @@ class CuBuffer:
 	def __init__(self, nbytes, * , handle = None, auto_free = True):
 		if handle is None:
 			handle = mem_alloc(nbytes)
+		# else:
+			# handle = CUdeviceptr(handle)
+
 		if auto_free:
 			self._finalizer = weakref.finalize(self, mem_free, handle)
 
@@ -182,6 +185,27 @@ class CuArray(CuBuffer):
 	def __len__(self):
 		return self.size
 
+	def __getitem__(self, idx):
+		if isinstance(idx, slice):
+			start = idx.start if idx.start != None else 0
+			stop = idx.stop if idx.stop != None else self.size - 1
+			size = stop - start
+			handle = CUdeviceptr(self.handle.value + start*self.dtype.itemsize)
+		else:
+			size = 1
+			handle = CUdeviceptr(self.handle.value + idx*self.dtype.itemsize)
+
+		return CuArray(size, self.dtype, handle = handle, auto_free = False)
+
+	@property
+	def __cuda_array_interface__(self):
+		return {'shape': (self.size,),
+				'strides': None,
+				'typestr': self.dtype.name,
+				'descr': self.dtype.descr,
+				'data': (self.handle, False),
+				'version': 3}
+
 	@property
 	def itemsize(self):
 		return self.dtype.itemsize
@@ -274,6 +298,9 @@ class CuNDArray(CuArray):
 
 	def __repr__(self):
 		return f"CuNDArray({self.shape}, {self.dtype}) <{self.handle}>"
+
+	def __len__(self):
+		return self.size
 
 	@property
 	def __cuda_array_interface__(self):
