@@ -647,9 +647,6 @@ def to_device_ndarray(ndarray, stream = 0):
 	d_ndarray.copy_from_host(ndarray, stream = stream)
 	return d_ndarray
 
-def to_device(ndarray, stream = 0):
-	return to_device_ndarray(ndarray, stream)
-
 def to_device_array(ary, stream = 0, auto_free = True):
 	d_ary = CuArray(ary.size, ary.dtype, auto_free = auto_free)
 	d_ary.copy_from_host(ary, stream = stream)
@@ -658,8 +655,11 @@ def to_device_array(ary, stream = 0, auto_free = True):
 def to_host(d_ary, stream = 0, nbytes = 0, offset = 0):
 	return d_ary.copy_to_host(stream = stream, nbytes = nbytes, offset = offset)
 
-def copy_to_device(*args, **kwargs):
-	return to_device(*args, **kwargs)
+def copy_to_ndarray(*args, **kwargs):
+	return to_device_ndarray(*args, **kwargs)
+
+def copy_to_array(*args, **kwargs):
+	return to_device_array(*args, **kwargs)
 
 def copy_to_host(*args, **kwargs):
 	return to_host(*args, **kwargs)
