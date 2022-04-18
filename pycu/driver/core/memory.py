@@ -203,7 +203,7 @@ class CuArray(CuBuffer):
 				'strides': None,
 				'typestr': self.dtype.name,
 				'descr': self.dtype.descr,
-				'data': (self.handle, False),
+				'data': (self.handle.value, False),
 				'version': 3}
 
 	@property
