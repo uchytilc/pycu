@@ -72,19 +72,19 @@ class Driver:
 					errmsg = ("Cannot find Driver API")
 					raise DriverSupportError(errmsg % e)
 
-				api = API_PROTOTYPES[get_driver_version(driver)]()
+				api, alias = API_PROTOTYPES[get_driver_version(driver)]()
 
 				#find & populate functions
 				for name, proto in api.items():
-					#most (newer) CUDA functions include a _v2 in their name and are aliased to the same name without _v2
-					func = getattr(driver, name + "_v2", None)
-					#if function isn't found with _v2 (or v2 is set to false) see if non-_v2 version exists
-					if not func:
-						func = getattr(driver, name, None)
+					func = getattr(driver, name, None)
 
 					if func:
 						func.restype = proto[0]
 						func.argtypes = proto[1:]
 						setattr(inst, name, func)
+
+				for name, name_v in alias.items():
+					func = getattr(driver, name_v, None)
+					setattr(inst, name, func)
 
 		return cls.__singleton

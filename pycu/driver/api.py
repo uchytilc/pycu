@@ -24,7 +24,7 @@ def API_PROTOTYPES_08000():
 			"cuDeviceGetAttribute": (CUresult, POINTER(c_int), CUdevice_attribute, CUdevice),
 			"cuDeviceGetCount": (CUresult, POINTER(c_int)),
 			"cuDeviceGetName": (CUresult, c_char_p, c_int, CUdevice),
-			"cuDeviceTotalMem": (CUresult, POINTER(c_size_t), CUdevice),
+			"cuDeviceTotalMem_v2": (CUresult, POINTER(c_size_t), CUdevice),
 			#DEPRECATED
 			"cuDeviceComputeCapability":(CUresult, POINTER(c_int), POINTER(c_int), CUdevice),
 			"cuDeviceGetProperties":(CUresult, POINTER(CUdevprop), CUdevice),
@@ -35,8 +35,8 @@ def API_PROTOTYPES_08000():
 			"cuDevicePrimaryCtxRetain":(CUresult, POINTER(CUcontext), CUdevice),
 			"cuDevicePrimaryCtxSetFlags":(CUresult, CUdevice, c_uint),
 		#CONTEXT MANAGEMENT
-			"cuCtxCreate":(CUresult, POINTER(CUcontext), c_uint, CUdevice),
-			"cuCtxDestroy":(CUresult, CUcontext),
+			"cuCtxCreate_v2":(CUresult, POINTER(CUcontext), c_uint, CUdevice),
+			"cuCtxDestroy_v2":(CUresult, CUcontext),
 			"cuCtxGetApiVersion":(CUresult, CUcontext, POINTER(c_uint)),
 			"cuCtxGetCacheConfig":(CUresult, POINTER(CUfunc_cache)),
 			"cuCtxGetCurrent":(CUresult, POINTER(CUcontext)),
@@ -45,8 +45,8 @@ def API_PROTOTYPES_08000():
 			"cuCtxGetLimit":(CUresult, POINTER(c_size_t), CUlimit),
 			"cuCtxGetSharedMemConfig":(CUresult, POINTER(CUsharedconfig)),
 			"cuCtxGetStreamPriorityRange":(CUresult, POINTER(c_int), POINTER(c_int)),
-			"cuCtxPopCurrent":(CUresult, POINTER(CUcontext)),
-			"cuCtxPushCurrent":(CUresult, POINTER(CUcontext)),
+			"cuCtxPopCurrent_v2":(CUresult, POINTER(CUcontext)),
+			"cuCtxPushCurrent_v2":(CUresult, POINTER(CUcontext)),
 			"cuCtxSetCacheConfig":(CUresult, CUfunc_cache),
 			"cuCtxSetCurrent":(CUresult, CUcontext),
 			"cuCtxSetLimit":(CUresult, CUlimit, c_size_t),
@@ -58,13 +58,13 @@ def API_PROTOTYPES_08000():
 			"cuCtxAttach": (CUresult, POINTER(CUcontext), c_uint),
 			"cuCtxDetach": (CUresult, CUcontext),
 		#MODULE MANAGEMENT
-			"cuLinkAddData":(CUresult, CUlinkState, CUjitInputType, c_void_p, c_size_t, c_char_p, c_uint, POINTER(CUjit_option), POINTER(c_void_p)),
-			"cuLinkAddFile":(CUresult, CUlinkState, CUjitInputType, c_char_p, c_uint, POINTER(CUjit_option), POINTER(c_void_p)),
+			"cuLinkAddData_v2":(CUresult, CUlinkState, CUjitInputType, c_void_p, c_size_t, c_char_p, c_uint, POINTER(CUjit_option), POINTER(c_void_p)),
+			"cuLinkAddFile_v2":(CUresult, CUlinkState, CUjitInputType, c_char_p, c_uint, POINTER(CUjit_option), POINTER(c_void_p)),
 			"cuLinkComplete":(CUresult, CUlinkState, POINTER(c_void_p), POINTER(c_size_t)),
-			"cuLinkCreate":(CUresult, c_uint, POINTER(CUjit_option), POINTER(c_void_p), POINTER(CUlinkState)),
+			"cuLinkCreate_v2":(CUresult, c_uint, POINTER(CUjit_option), POINTER(c_void_p), POINTER(CUlinkState)),
 			"cuLinkDestroy":(CUresult, CUlinkState),
 			"cuModuleGetFunction":(CUresult, POINTER(CUfunction), CUmodule, c_char_p),
-			"cuModuleGetGlobal":(CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), CUmodule, c_char_p),
+			"cuModuleGetGlobal_v2":(CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), CUmodule, c_char_p),
 			"cuModuleGetSurfRef":(CUresult, POINTER(CUsurfref), CUmodule, c_char_p),
 			"cuModuleGetTexRef":(CUresult, POINTER(CUtexref), CUmodule, c_char_p),
 			"cuModuleLoad":(CUresult, POINTER(CUmodule), c_char_p),
@@ -73,11 +73,11 @@ def API_PROTOTYPES_08000():
 			"cuModuleLoadFatBinary":(CUresult, POINTER(CUmodule), c_void_p),
 			"cuModuleUnload":(CUresult, CUmodule),
 		#MEMORY MANAGEMENT
-			"cuArray3DCreate":(CUresult, POINTER(CUarray), POINTER(CUDA_ARRAY3D_DESCRIPTOR)),
-			"cuArray3DGetDescriptor":(CUresult, POINTER(CUDA_ARRAY3D_DESCRIPTOR), CUarray),
-			"cuArrayCreate":(CUresult, POINTER(CUarray), POINTER(CUDA_ARRAY_DESCRIPTOR)),
+			"cuArray3DCreate_v2":(CUresult, POINTER(CUarray), POINTER(CUDA_ARRAY3D_DESCRIPTOR)),
+			"cuArray3DGetDescriptor_v2":(CUresult, POINTER(CUDA_ARRAY3D_DESCRIPTOR), CUarray),
+			"cuArrayCreate_v2":(CUresult, POINTER(CUarray), POINTER(CUDA_ARRAY_DESCRIPTOR)),
 			"cuArrayDestroy":(CUresult, CUarray),
-			"cuArrayGetDescriptor":(CUresult, POINTER(CUDA_ARRAY_DESCRIPTOR), CUarray),
+			"cuArrayGetDescriptor_v2":(CUresult, POINTER(CUDA_ARRAY_DESCRIPTOR), CUarray),
 			"cuDeviceGetByPCIBusId":(CUresult, POINTER(CUdevice), c_char_p),
 			"cuDeviceGetPCIBusId":(CUresult, c_char_p, c_int, CUdevice),
 			"cuIpcCloseMemHandle":(CUresult, CUdeviceptr),
@@ -85,44 +85,44 @@ def API_PROTOTYPES_08000():
 			"cuIpcGetMemHandle":(CUresult, POINTER(CUipcMemHandle), CUdeviceptr),
 			"cuIpcOpenEventHandle":(CUresult, POINTER(CUevent), CUipcEventHandle),
 			"cuIpcOpenMemHandle":(CUresult, POINTER(CUdeviceptr), CUipcMemHandle, c_uint),
-			"cuMemAlloc":(CUresult, POINTER(CUdeviceptr), c_size_t),
-			"cuMemAllocHost":(CUresult, POINTER(c_void_p), c_size_t),
+			"cuMemAlloc_v2":(CUresult, POINTER(CUdeviceptr), c_size_t),
+			"cuMemAllocHost_v2":(CUresult, POINTER(c_void_p), c_size_t),
 			"cuMemAllocManaged":(CUresult, POINTER(CUdeviceptr), c_size_t, c_uint),
-			"cuMemAllocPitch":(CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), c_size_t, c_size_t, c_uint),
-			"cuMemFree":(CUresult, CUdeviceptr),
+			"cuMemAllocPitch_v2":(CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), c_size_t, c_size_t, c_uint),
+			"cuMemFree_v2":(CUresult, CUdeviceptr),
 			"cuMemFreeHost":(CUresult, c_void_p),
-			"cuMemGetAddressRange":(CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), CUdeviceptr),
-			"cuMemGetInfo":(CUresult, POINTER(c_size_t), POINTER(c_size_t)),
+			"cuMemGetAddressRange_v2":(CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), CUdeviceptr),
+			"cuMemGetInfo_v2":(CUresult, POINTER(c_size_t), POINTER(c_size_t)),
 			"cuMemHostAlloc":(CUresult, POINTER(c_void_p), c_size_t, c_uint),
-			"cuMemHostGetDevicePointer":(CUresult, POINTER(CUdeviceptr), c_void_p, c_uint),
+			"cuMemHostGetDevicePointer_v2":(CUresult, POINTER(CUdeviceptr), c_void_p, c_uint),
 			"cuMemHostGetFlags":(CUresult, POINTER(c_uint), c_void_p),
-			"cuMemHostRegister":(CUresult, c_void_p, c_size_t, c_uint),
+			"cuMemHostRegister_v2":(CUresult, c_void_p, c_size_t, c_uint),
 			"cuMemHostUnregister":(CUresult, c_void_p),
 			"cuMemcpy":(CUresult, CUdeviceptr, CUdeviceptr, c_size_t),
-			"cuMemcpy2D":(CUresult, POINTER(CUDA_MEMCPY2D)),
-			"cuMemcpy2DAsync":(CUresult, POINTER(CUDA_MEMCPY2D), CUstream),
-			"cuMemcpy2DUnaligned":(CUresult, POINTER(CUDA_MEMCPY2D)),
-			"cuMemcpy3D":(CUresult, POINTER(CUDA_MEMCPY3D)),
-			"cuMemcpy3DAsync":(CUresult, POINTER(CUDA_MEMCPY3D), CUstream),
+			"cuMemcpy2D_v2":(CUresult, POINTER(CUDA_MEMCPY2D)),
+			"cuMemcpy2DAsync_v2":(CUresult, POINTER(CUDA_MEMCPY2D), CUstream),
+			"cuMemcpy2DUnaligned_v2":(CUresult, POINTER(CUDA_MEMCPY2D)),
+			"cuMemcpy3D_v2":(CUresult, POINTER(CUDA_MEMCPY3D)),
+			"cuMemcpy3DAsync_v2":(CUresult, POINTER(CUDA_MEMCPY3D), CUstream),
 			"cuMemcpy3DPeer":(CUresult, POINTER(CUDA_MEMCPY3D_PEER)),
 			"cuMemcpy3DPeerAsync":(CUresult, POINTER(CUDA_MEMCPY3D_PEER), CUstream),
 			"cuMemcpyAsync":(CUresult, CUdeviceptr, CUdeviceptr, c_size_t, CUstream),
-			"cuMemcpyAtoA":(CUresult, CUarray, c_size_t, CUarray, c_size_t, c_size_t),
-			"cuMemcpyAtoD":(CUresult, CUdeviceptr, CUarray, c_size_t, c_size_t),
-			"cuMemcpyAtoH":(CUresult, c_void_p, CUarray, c_size_t, c_size_t),
-			"cuMemcpyAtoHAsync":(CUresult, c_void_p, CUarray, c_size_t, c_size_t, CUstream),
-			"cuMemcpyDtoA":(CUresult, CUarray, c_size_t, CUdeviceptr, c_size_t),
-			"cuMemcpyDtoD":(CUresult, CUdeviceptr, CUdeviceptr, c_size_t),
-			"cuMemcpyDtoDAsync":(CUresult, CUdeviceptr, CUdeviceptr, c_size_t, CUstream),
-			"cuMemcpyDtoH":(CUresult, c_void_p, CUdeviceptr, c_size_t),
-			"cuMemcpyDtoHAsync":(CUresult, c_void_p, CUdeviceptr, c_size_t, CUstream),
-			"cuMemcpyHtoA":(CUresult, CUarray, c_size_t, c_void_p, c_size_t),
-			"cuMemcpyHtoAAsync":(CUresult, CUarray, c_size_t, c_void_p, c_size_t, CUstream),
-			"cuMemcpyHtoD":(CUresult, CUdeviceptr, c_void_p, c_size_t),
-			"cuMemcpyHtoDAsync":(CUresult, CUdeviceptr, c_void_p, c_size_t, CUstream),
+			"cuMemcpyAtoA_v2":(CUresult, CUarray, c_size_t, CUarray, c_size_t, c_size_t),
+			"cuMemcpyAtoD_v2":(CUresult, CUdeviceptr, CUarray, c_size_t, c_size_t),
+			"cuMemcpyAtoH_v2":(CUresult, c_void_p, CUarray, c_size_t, c_size_t),
+			"cuMemcpyAtoHAsync_v2":(CUresult, c_void_p, CUarray, c_size_t, c_size_t, CUstream),
+			"cuMemcpyDtoA_v2":(CUresult, CUarray, c_size_t, CUdeviceptr, c_size_t),
+			"cuMemcpyDtoD_v2":(CUresult, CUdeviceptr, CUdeviceptr, c_size_t),
+			"cuMemcpyDtoDAsync_v2":(CUresult, CUdeviceptr, CUdeviceptr, c_size_t, CUstream),
+			"cuMemcpyDtoH_v2":(CUresult, c_void_p, CUdeviceptr, c_size_t),
+			"cuMemcpyDtoHAsync_v2":(CUresult, c_void_p, CUdeviceptr, c_size_t, CUstream),
+			"cuMemcpyHtoA_v2":(CUresult, CUarray, c_size_t, c_void_p, c_size_t),
+			"cuMemcpyHtoAAsync_v2":(CUresult, CUarray, c_size_t, c_void_p, c_size_t, CUstream),
+			"cuMemcpyHtoD_v2":(CUresult, CUdeviceptr, c_void_p, c_size_t),
+			"cuMemcpyHtoDAsync_v2":(CUresult, CUdeviceptr, c_void_p, c_size_t, CUstream),
 			"cuMemcpyPeer":(CUresult, CUdeviceptr, CUcontext, CUdeviceptr, CUcontext, c_size_t),
 			"cuMemcpyPeerAsync":(CUresult, CUdeviceptr, CUcontext, CUdeviceptr, CUcontext, c_size_t, CUstream),
-			"cuMemsetD16":(CUresult, CUdeviceptr, c_uint16, c_size_t),
+			"cuMemsetD16_v2":(CUresult, CUdeviceptr, c_uint16, c_size_t),
 			"cuMemsetD16Async":(CUresult, CUdeviceptr, c_uint16, c_size_t, CUstream),
 			# "cuMemsetD2D16":(CUresult, CUdeviceptr, c_size_t, c_uint, c_size_t, c_size_t),
 			# "cuMemsetD2D16Async":(CUresult, CUdeviceptr, c_size_t, c_uint, c_size_t, c_size_t, CUstream),
@@ -130,9 +130,9 @@ def API_PROTOTYPES_08000():
 			# "cuMemsetD2D32Async":(CUresult, CUdeviceptr, c_size_t, c_uint, c_size_t, c_size_t, CUstream),
 			# "cuMemsetD2D8":(CUresult, CUdeviceptr, c_size_t, c_uint, c_size_t, c_size_t),
 			# "cuMemsetD2D8Async":(CUresult, CUdeviceptr, c_size_t, c_uint, c_size_t, c_size_t, CUstream),
-			"cuMemsetD32":(CUresult, CUdeviceptr, c_uint32, c_size_t),
+			"cuMemsetD32_v2":(CUresult, CUdeviceptr, c_uint32, c_size_t),
 			"cuMemsetD32Async":(CUresult, CUdeviceptr, c_uint32, c_size_t, CUstream),
-			"cuMemsetD8":(CUresult, CUdeviceptr, c_uint8, c_size_t),
+			"cuMemsetD8_v2":(CUresult, CUdeviceptr, c_uint8, c_size_t),
 			"cuMemsetD8Async":(CUresult, CUdeviceptr, c_uint8, c_size_t, CUstream),
 			"cuMipmappedArrayCreate":(CUresult, POINTER(CUmipmappedArray), POINTER(CUDA_ARRAY3D_DESCRIPTOR), c_uint),
 			"cuMipmappedArrayDestroy":(CUresult, CUmipmappedArray),
@@ -150,7 +150,7 @@ def API_PROTOTYPES_08000():
 			"cuStreamAttachMemAsync": (CUresult, CUstream, CUdeviceptr, c_size_t, c_uint),
 			"cuStreamCreate": (CUresult, POINTER(CUstream), c_uint),
 			"cuStreamCreateWithPriority": (CUresult, POINTER(CUstream), c_uint, c_int),
-			"cuStreamDestroy": (CUresult, CUstream),
+			"cuStreamDestroy_v2": (CUresult, CUstream),
 			"cuStreamGetFlags": (CUresult, CUstream, POINTER(c_uint)),
 			"cuStreamGetPriority": (CUresult, CUstream, POINTER(c_int)),
 			"cuStreamQuery": (CUresult, CUstream),
@@ -158,7 +158,7 @@ def API_PROTOTYPES_08000():
 			"cuStreamWaitEvent": (CUresult, CUstream, CUevent, c_uint),
 		#EVENT MANAGEMENT
 			"cuEventCreate": (CUresult, POINTER(CUevent), c_uint),
-			"cuEventDestroy": (CUresult, CUevent),
+			"cuEventDestroy_v2": (CUresult, CUevent),
 			"cuEventElapsedTime": (CUresult, POINTER(c_float), CUevent, CUevent),
 			"cuEventQuery": (CUresult, CUevent),
 			"cuEventRecord": (CUresult, CUevent, CUstream),
@@ -286,8 +286,8 @@ def API_PROTOTYPES_08000():
 		#GRAPHICS INTEROPERABILITY
 			"cuGraphicsMapResources": (CUresult, c_uint, POINTER(CUgraphicsResource), CUstream),
 			"cuGraphicsResourceGetMappedMipmappedArray": (CUresult, POINTER(CUmipmappedArray), CUgraphicsResource),
-			"cuGraphicsResourceGetMappedPointer": (CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), CUgraphicsResource),
-			"cuGraphicsResourceSetMapFlags": (CUresult, CUgraphicsResource, c_uint),
+			"cuGraphicsResourceGetMappedPointer_v2": (CUresult, POINTER(CUdeviceptr), POINTER(c_size_t), CUgraphicsResource),
+			"cuGraphicsResourceSetMapFlags_v2": (CUresult, CUgraphicsResource, c_uint),
 			"cuGraphicsSubResourceGetMappedArray": (CUresult, POINTER(CUarray), CUgraphicsResource, c_uint, c_uint),
 			"cuGraphicsUnmapResources": (CUresult, c_uint, POINTER(CUgraphicsResource), CUstream),
 			"cuGraphicsUnregisterResource": (CUresult, CUgraphicsResource),
@@ -299,7 +299,7 @@ def API_PROTOTYPES_08000():
 			# CUresult cuProfilerStop ( void )
 			# Disable profiling.
 		#OPENGL INTEROPERABILITY
-			"cuGLGetDevices": (CUresult, POINTER(c_uint), POINTER(CUdevice), c_uint, CUGLDeviceList),
+			"cuGLGetDevices_v2": (CUresult, POINTER(c_uint), POINTER(CUdevice), c_uint, CUGLDeviceList),
 			"cuGraphicsGLRegisterBuffer": (CUresult, POINTER(CUgraphicsResource), GLuint, c_uint),
 			"cuGraphicsGLRegisterImage": (CUresult, POINTER(CUgraphicsResource), GLuint, GLenum, c_uint),
 			# # CUresult cuWGLGetDevice ( CUdevice* pDevice, HGPUNV hGpu )
@@ -359,7 +359,74 @@ def API_PROTOTYPES_08000():
 			# Get an eglFrame through which to access a registered EGL graphics resource.
 	}
 
-	return api
+	alias = {
+		#DEVICE MANAGEMENT
+			 "cuDeviceTotalMem":"cuDeviceTotalMem_v2",
+		#CONTEXT MANAGEMENT
+			 "cuCtxCreate":"cuCtxCreate_v2",
+			 "cuCtxDestroy":"cuCtxDestroy_v2",
+			 "cuCtxPopCurrent":"cuCtxPopCurrent_v2",
+			 "cuCtxPushCurrent":"cuCtxPushCurrent_v2",
+		#MODULE MANAGEMENT
+			 "cuLinkAddData":"cuLinkAddData_v2",
+			 "cuLinkAddFile":"cuLinkAddFile_v2",
+			 "cuLinkCreate":"cuLinkCreate_v2",
+			 "cuModuleGetGlobal":"cuModuleGetGlobal_v2",
+		#MEMORY MANAGEMENT
+			 "cuArray3DCreate":"cuArray3DCreate_v2",
+			 "cuArray3DGetDescriptor":"cuArray3DGetDescriptor_v2",
+			 "cuArrayCreate":"cuArrayCreate_v2",
+			 "cuArrayGetDescriptor":"cuArrayGetDescriptor_v2",
+			 "cuMemGetInfo":"cuMemGetInfo_v2",
+			 "cuMemAlloc":"cuMemAlloc_v2",
+			 "cuMemAllocHost":"cuMemAllocHost_v2",
+			 "cuMemAllocPitch":"cuMemAllocPitch_v2",
+			 "cuMemFree":"cuMemFree_v2",
+			 "cuMemGetAddressRange":"cuMemGetAddressRange_v2",
+			 "cuMemHostGetDevicePointer":"cuMemHostGetDevicePointer_v2",
+			 "cuMemHostRegister":"cuMemHostRegister_v2",
+			 "cuMemcpy2D":"cuMemcpy2D_v2",
+			 "cuMemcpy2DAsync":"cuMemcpy2DAsync_v2",
+			 "cuMemcpy2DUnaligned":"cuMemcpy2DUnaligned_v2",
+			 "cuMemcpy3D":"cuMemcpy3D_v2",
+			 "cuMemcpy3DAsync":"cuMemcpy3DAsync_v2",
+			 "cuMemcpyAtoA":"cuMemcpyAtoA_v2",
+			 "cuMemcpyAtoD":"cuMemcpyAtoD_v2",
+			 "cuMemcpyAtoH":"cuMemcpyAtoH_v2",
+			 "cuMemcpyAtoHAsync":"cuMemcpyAtoHAsync_v2",
+			 "cuMemcpyDtoA":"cuMemcpyDtoA_v2",
+			 "cuMemcpyDtoD":"cuMemcpyDtoD_v2",
+			 "cuMemcpyDtoDAsync":"cuMemcpyDtoDAsync_v2",
+			 "cuMemcpyDtoH":"cuMemcpyDtoH_v2",
+			 "cuMemcpyDtoHAsync":"cuMemcpyDtoHAsync_v2",
+			 "cuMemcpyHtoA":"cuMemcpyHtoA_v2",
+			 "cuMemcpyHtoAAsync":"cuMemcpyHtoAAsync_v2",
+			 "cuMemcpyHtoD":"cuMemcpyHtoD_v2",
+			 "cuMemcpyHtoDAsync":"cuMemcpyHtoDAsync_v2",
+			 "cuMemsetD16":"cuMemsetD16_v2",
+			 "cuMemsetD32":"cuMemsetD32_v2",
+			 "cuMemsetD8":"cuMemsetD8_v2",
+			 # "cuMemsetD2D8":"cuMemsetD2D8_v2",
+			 # "cuMemsetD2D16":"cuMemsetD2D16_v2",
+			 # "cuMemsetD2D32":"cuMemsetD2D32_v2",
+		#STREAM MANAGEMENT
+			 "cuStreamDestroy":"cuStreamDestroy_v2",
+		#EVENT MANAGEMENT
+			 "cuEventDestroy":"cuEventDestroy_v2",
+		#TEXTURE REFERENCE MANAGEMENT
+			 # "cuTexRefSetAddress":"cuTexRefSetAddress_v2",
+			 # "cuTexRefSetAddress2D":"cuTexRefSetAddress2D_v2",
+			 # "cuTexRefGetAddress":"cuTexRefGetAddress_v2",
+		#GRAPHICS INTEROPERABILITY
+			 "cuGraphicsResourceGetMappedPointer":"cuGraphicsResourceGetMappedPointer_v2",
+			 "cuGraphicsResourceSetMapFlags":"cuGraphicsResourceSetMapFlags_v2",
+		#OPENGL INTEROPERABILITY
+			 "cuGLGetDevices":"cuGLGetDevices_v2",
+		#VDPAU Interoperability
+			 # "cuVDPAUCtxCreate":"cuVDPAUCtxCreate_v2",
+			}
+
+	return api, alias
 
 def API_PROTOTYPES_09000():
 	api = {
@@ -372,16 +439,26 @@ def API_PROTOTYPES_09000():
 			"cuLaunchCooperativeKernelMultiDevice": (CUresult, POINTER(CUDA_LAUNCH_PARAMS), c_uint, c_uint)
 	}
 
-	api.update(API_PROTOTYPES_08000())
+	alias = {}
 
-	return api
+	api_08000, alias_08000 = API_PROTOTYPES_08000()
+
+	api.update(api_08000)
+	alias.update(alias_08000)
+
+	return api, alias
 
 def API_PROTOTYPES_09010():
 	api = {}
 
-	api.update(API_PROTOTYPES_09000())
+	alias = {}
 
-	return api
+	api_09000, alias_09000 = API_PROTOTYPES_09000()
+
+	api.update(api_09000)
+	alias.update(alias_09000)
+
+	return api, alias
 
 def API_PROTOTYPES_09020():
 	api = {
@@ -397,9 +474,14 @@ def API_PROTOTYPES_09020():
 			# cuStreamWriteValue64
 	}
 	
-	api.update(API_PROTOTYPES_09010())
+	alias = {}
 
-	return api
+	api_09010, alias_09010 = API_PROTOTYPES_09010()
+
+	api.update(api_09010)
+	alias.update(alias_09010)
+
+	return api, alias
 
 def API_PROTOTYPES_10000():
 	api = {
@@ -454,13 +536,19 @@ def API_PROTOTYPES_10000():
 			# cuGraphRemoveDependencies ( CUgraph hGraph, CUgraphNode* from, CUgraphNode* to, size_t numDependencies )
 	}
 
-	api.update(API_PROTOTYPES_09020())
+	alias = {}
 
-	return api
+	api_09020, alias_09020 = API_PROTOTYPES_09020()
+
+	api.update(api_09020)
+	alias.update(alias_09020)
+
+	return api, alias
 
 def API_PROTOTYPES_10010():
 	api = {
 		#STREAM MANAGEMENT
+			"cuStreamBeginCapture_v2":(CUresult, CUstream, CUstreamCaptureMode),
 			"cuStreamGetCaptureInfo": (CUresult, CUstream, POINTER(CUstreamCaptureStatus), POINTER(cuuint64_t)),
 			"cuThreadExchangeStreamCaptureMode": (CUresult, POINTER(CUstreamCaptureMode)),
 		#GRAPH MANAGEMENT
@@ -469,15 +557,20 @@ def API_PROTOTYPES_10010():
 		#SURFACE REFERENCE MANAGEMENT is now DEPRECATED
 	}
 
-	api.update(API_PROTOTYPES_10000())
+	alias = {"cuStreamBeginCapture":"cuStreamBeginCapture_v2"}
 
-	return api
+	api_10000, alias_10000 = API_PROTOTYPES_10000()
+
+	api.update(api_10000)
+	alias.update(alias_10000)
+
+	return api, alias
 
 def API_PROTOTYPES_10020():
 	api = {
 		#DEVICE MANAGEMENT
 			"cuDeviceGetNvSciSyncAttributes": (c_void_p, CUdevice, c_int),
-		# Virtual Memory Management
+		#VIRTUAL MEMORY MANAGEMENT
 			# cuMemAddressFree ( CUdeviceptr ptr, size_t size )
 			# cuMemAddressReserve ( CUdeviceptr* ptr, size_t size, size_t alignment, CUdeviceptr addr, unsigned long long flags )
 			# cuMemCreate ( CUmemGenericAllocationHandle* handle, size_t size, const CUmemAllocationProp* prop, unsigned long long flags )
@@ -490,40 +583,64 @@ def API_PROTOTYPES_10020():
 			# cuMemRelease ( CUmemGenericAllocationHandle handle )
 			# cuMemSetAccess ( CUdeviceptr ptr, size_t size, const CUmemAccessDesc* desc, size_t count )
 			# cuMemUnmap ( CUdeviceptr ptr, size_t size )
-		# Graph Management
+		#GRAPH MANAGEMENT
 			# cuGraphExecHostNodeSetParams ( CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_HOST_NODE_PARAMS* nodeParams )
 			# cuGraphExecMemcpyNodeSetParams ( CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_MEMCPY3D* copyParams, CUcontext ctx )
 			# cuGraphExecMemsetNodeSetParams ( CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_MEMSET_NODE_PARAMS* memsetParams, CUcontext ctx )
 	}
 
-	api.update(API_PROTOTYPES_10010())
+	alias = {}
 
-	return api
+	api_10010, alias_10010 = API_PROTOTYPES_10010()
+
+	api.update(api_10010)
+	alias.update(alias_10010)
+
+	return api, alias
 
 def API_PROTOTYPES_11000():
 	api = {
 		#CONTEXT MANAGEMENT
 			"cuCtxResetPersistingL2Cache":(CUresult,),
-		#Virtual Memory Management
+		#PRIMARY CONTEXT MANAGEMENT
+			"cuDevicePrimaryCtxRelease_v2":(CUresult, CUdevice),
+			"cuDevicePrimaryCtxSetFlags_v2":(CUresult, CUdevice, c_uint),
+			"cuDevicePrimaryCtxReset_v2":(CUresult, CUdevice),
+		#MEMORY MANAGEMENT
+			"cuIpcOpenMemHandle_v2":(CUresult, POINTER(CUdeviceptr), CUipcMemHandle, c_uint),
+		#VIRTUAL MEMORY MANAGEMENT
 			# cuMemRetainAllocationHandle ( CUmemGenericAllocationHandle* handle, void* addr )
 		#STREAM MANAGEMENT
 			"cuStreamCopyAttributes": (CUresult, CUstream, CUstream),
 			"cuStreamSetAttribute": (CUresult, CUstream, CUstreamAttrID, POINTER(CUstreamAttrID)),
 			"cuStreamGetAttribute": (CUresult, CUstream, CUstreamAttrID, POINTER(CUstreamAttrValue)),
-		# Graph Management
+		#GRAPH MANAGEMENT
 			# cuGraphKernelNodeCopyAttributes ( CUgraphNode dst, CUgraphNode src )
 			# cuGraphKernelNodeGetAttribute ( CUgraphNode hNode, CUkernelNodeAttrID attr, CUkernelNodeAttrValue* value_out )
 			# cuGraphKernelNodeSetAttribute ( CUgraphNode hNode, CUkernelNodeAttrID attr, const CUkernelNodeAttrValue* value )
-		# Occupancy
+			# cuGraphInstantiate_v2 ( CUgraphExec* phGraphExec, CUgraph hGraph, CUgraphNode* phErrorNode, char* logBuffer, size_t bufferSize )
+				# "cuGraphInstantiate_v2":
+		#OCCUPANCY
 			# cuOccupancyAvailableDynamicSMemPerBlock ( size_t* dynamicSmemSize, CUfunction func, int  numBlocks, int  blockSize )
 
-		# Profiler Control
+		#PROFILER CONTROL
 			#cuProfilerInitialize is now DEPRECATED
 	}
 
-	api.update(API_PROTOTYPES_10020())
+	alias = {
+			"cuDevicePrimaryCtxRelease_v2":"cuDevicePrimaryCtxRelease",
+			"cuDevicePrimaryCtxSetFlags_v2":"cuDevicePrimaryCtxSetFlags",
+			"cuDevicePrimaryCtxReset_v2":"cuDevicePrimaryCtxReset",
+			"cuIpcOpenMemHandle_v2":"cuIpcOpenMemHandle",
+			# "cuGraphInstantiate":"cuGraphInstantiate_v2"
+	}
 
-	return api
+	api_10020, alias_10020 = API_PROTOTYPES_10020()
+
+	api.update(api_10020)
+	alias.update(alias_10020)
+
+	return api, alias
 
 def API_PROTOTYPES_11010():
 	api = {
@@ -557,9 +674,26 @@ def API_PROTOTYPES_11010():
 			# 9/10/11 removed
 	}
 
-	api.update(API_PROTOTYPES_11000())
+	alias = {}
 
-	return api
+	api_11000, alias_11000 = API_PROTOTYPES_11000()
+
+	api.update(api_11000)
+	alias.update(alias_11000)
+
+	return api, alias
+
+def API_PROTOTYPES_11011():
+	api = {}
+
+	alias = {}
+
+	api_11010, alias_11010 = API_PROTOTYPES_11010()
+
+	api.update(api_11010)
+	alias.update(alias_11010)
+
+	return api, alias
 
 def API_PROTOTYPES_11020():
 	api = {
@@ -617,10 +751,14 @@ def API_PROTOTYPES_11020():
 			# Sets an external semaphore wait node's parameters.
 	}
 
-	api.update(API_PROTOTYPES_11010())
+	alias = {}
 
-	return api
+	api_11011, alias_11011 = API_PROTOTYPES_11011()
 
+	api.update(api_11011)
+	alias.update(alias_11011)
+
+	return api, alias
 
 # https://docs.nvidia.com/cuda/archive/11.2.0/cuda-driver-api/index.html
 # https://docs.nvidia.com/cuda/archive/11.2.1/cuda-driver-api/index.html
@@ -628,66 +766,185 @@ def API_PROTOTYPES_11020():
 # https://docs.nvidia.com/cuda/archive/11.3.0/cuda-driver-api/index.html
 
 
-def API_PROTOTYPES_11021():
-	#TO DO
-		#implement prototypes
+#TO DO
+	#implement prototypes beyond here
 
+
+def API_PROTOTYPES_11021():
 	api = {}
 
-	api.update(API_PROTOTYPES_11020())
+	alias = {}
 
-	return api
+	api_11020, alias_11020 = API_PROTOTYPES_11020()
+
+	api.update(api_11020)
+	alias.update(alias_11020)
+
+	return api, alias
 
 def API_PROTOTYPES_11022():
-	#TO DO
-		#implement prototypes
-
 	api = {}
 
-	api.update(API_PROTOTYPES_11021())
+	alias = {}
 
-	return api
+	api_11021, alias_11021 = API_PROTOTYPES_11021()
+
+	api.update(api_11021)
+	alias.update(alias_11021)
+
+	return api, alias
 
 def API_PROTOTYPES_11030():
-	#TO DO
-		#implement prototypes
+	api = {
+		# "cuStreamGetCaptureInfo_v2":(),
+		# 	#note: does not alias cuStreamGetCaptureInfo
+	}
 
+	alias = {}
+
+	api_11022, alias_11022 = API_PROTOTYPES_11022()
+
+	api.update(api_11022)
+	alias.update(alias_11022)
+
+	return api, alias
+
+def API_PROTOTYPES_11031():
 	api = {}
 
-	api.update(API_PROTOTYPES_11022())
+	alias = {}
 
-	return api
+	api_11030, alias_11030 = API_PROTOTYPES_11030()
+
+	api.update(api_11030)
+	alias.update(alias_11030)
+
+	return api, alias
 
 def API_PROTOTYPES_11040():
-	#TO DO
-		#implement prototypes
+	api = {
+		# "cuDeviceGetUuid_v2":(),
+		# 	#note: does not alias cuDeviceGetUuid
+		# "cuCtxCreate_v3":(),
+		# 	#note: does not alias cuCtxCreate
+	}
 
+	alias = {}
+
+	api_11031, alias_11031 = API_PROTOTYPES_11031()
+
+	api.update(api_11031)
+	alias.update(alias_11031)
+
+	return api, alias
+
+def API_PROTOTYPES_11041():
 	api = {}
 
-	api.update(API_PROTOTYPES_11030())
+	alias = {}
 
-	return api
+	api_11040, alias_11040 = API_PROTOTYPES_11040()
+
+	api.update(api_11040)
+	alias.update(alias_11040)
+
+	return api, alias
+
+def API_PROTOTYPES_11042():
+	api = {}
+
+	alias = {}
+
+	api_11041, alias_11041 = API_PROTOTYPES_11041()
+
+	api.update(api_11041)
+	alias.update(alias_11041)
+
+	return api, alias
+
+def API_PROTOTYPES_11043():
+	api = {}
+
+	alias = {}
+
+	api_11042, alias_11042 = API_PROTOTYPES_11042()
+
+	api.update(api_11042)
+	alias.update(alias_11042)
+
+	return api, alias
+
+def API_PROTOTYPES_11044():
+	api = {}
+
+	alias = {}
+
+	api_11043, alias_11043 = API_PROTOTYPES_11043()
+
+	api.update(api_11043)
+	alias.update(alias_11043)
+
+	return api, alias
 
 def API_PROTOTYPES_11050():
-	#TO DO
-		#implement prototypes
-
 	api = {}
 
-	api.update(API_PROTOTYPES_11040())
+	alias = {}
 
-	return api
+	api_11044, alias_11044 = API_PROTOTYPES_11044()
+
+	api.update(api_11044)
+	alias.update(alias_11044)
+
+	return api, alias
+
+def API_PROTOTYPES_11051():
+	api = {}
+
+	alias = {}
+
+	api_11050, alias_11050 = API_PROTOTYPES_11050()
+
+	api.update(api_11050)
+	alias.update(alias_11050)
+
+	return api, alias
+
+def API_PROTOTYPES_11052():
+	api = {}
+
+	alias = {}
+
+	api_11051, alias_11051 = API_PROTOTYPES_11051()
+
+	api.update(api_11051)
+	alias.update(alias_11051)
+
+	return api, alias
 
 def API_PROTOTYPES_11060():
-	#TO DO
-		#implement prototypes
-
 	api = {}
 
-	api.update(API_PROTOTYPES_11050())
+	alias = {}
 
-	return api
+	api_11052, alias_11052 = API_PROTOTYPES_11052()
 
+	api.update(api_11052)
+	alias.update(alias_11052)
+
+	return api, alias
+
+def API_PROTOTYPES_11061():
+	api = {}
+
+	alias = {}
+
+	api_11060, alias_11060 = API_PROTOTYPES_11060()
+
+	api.update(api_11060)
+	alias.update(alias_11060)
+
+	return api, alias
 
 #note: used to determine which API_PROTOTYPE to load. Calling cuDriverGetVersion does not require initializing the driver
 VERSION_PROTOTYPE = ("cuDriverGetVersion", (CUresult, POINTER(c_int)))
@@ -699,12 +956,20 @@ API_PROTOTYPES = { 8000:API_PROTOTYPES_08000,
 				  10000:API_PROTOTYPES_10000,
 				  10010:API_PROTOTYPES_10010,
 				  10020:API_PROTOTYPES_10020,
-				  11000:API_PROTOTYPES_11000,
 				  11010:API_PROTOTYPES_11010,
+				  11011:API_PROTOTYPES_11011,
 				  11020:API_PROTOTYPES_11020,
 				  11021:API_PROTOTYPES_11021,
 				  11022:API_PROTOTYPES_11022,
 				  11030:API_PROTOTYPES_11030,
+				  11031:API_PROTOTYPES_11031,
 				  11040:API_PROTOTYPES_11040,
+				  11041:API_PROTOTYPES_11041,
+				  11042:API_PROTOTYPES_11042,
+				  11043:API_PROTOTYPES_11043,
+				  11044:API_PROTOTYPES_11044,
 				  11050:API_PROTOTYPES_11050,
-				  11060:API_PROTOTYPES_11060}
+				  11051:API_PROTOTYPES_11051,
+				  11052:API_PROTOTYPES_11052,
+				  11060:API_PROTOTYPES_11060,
+				  11061:API_PROTOTYPES_11061}
