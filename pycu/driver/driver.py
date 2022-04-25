@@ -3,8 +3,10 @@ from .error import DriverSupportError
 from pycu.libutils import find_lib, CudaSupportError
 
 import sys
+import os
 import ctypes
 import threading
+import string
 
 _driver_lock = threading.Lock()
 
@@ -23,7 +25,8 @@ def find_driver():
 
 	if sys.platform == 'win32':
 		loader = ctypes.WinDLL
-		paths.append('\\windows\\system32')
+		for drive in [f"{drive}:" for drive in string.ascii_uppercase if os.path.exists(f"{drive}:")]:
+			paths.append(f"{drive}\\windows\\system32")
 		names = ['nvcuda.dll']
 	# elif sys.platform == 'darwin': #OS x
 		# loader = ctypes.CDLL
