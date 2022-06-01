@@ -852,8 +852,6 @@ def vec_decl(vec, vec_t, Vec):
 		out = OutProxy(context, builder, ref = out_ptr)
 
 		# context._get_constants.find((types.float32,))
-		print(type())
-
 
 		for n, attr in enumerate(datamodel._fields):
 			setattr(vec, attr, context.cast(builder, args[n], sig.args[n], sig.return_type._member_t))
