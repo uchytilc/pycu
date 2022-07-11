@@ -75,7 +75,23 @@ class Driver:
 					errmsg = ("Cannot find Driver API")
 					raise DriverSupportError(errmsg % e)
 
-				api, alias = API_PROTOTYPES[get_driver_version(driver)]()
+				version = get_driver_version(driver)
+
+				try:
+					api, alias = API_PROTOTYPES[version]()
+				except:
+					#raise warning
+
+					api = {}
+
+					#fall back to older version API
+					for supported_version in sorted(API_PROTOTYPES.keys(), reverse = True):
+						if supported_version < version:
+							api, alias = API_PROTOTYPES[supported_version]()
+							break
+
+					if not api:
+						raise CudaSupportError("Could not find supported API based on driver verison")
 
 				#find & populate functions
 				for name, proto in api.items():

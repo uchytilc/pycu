@@ -946,6 +946,19 @@ def API_PROTOTYPES_11061():
 
 	return api, alias
 
+def API_PROTOTYPES_11070():
+	api = {}
+
+	alias = {}
+
+	api_11061, alias_11061 = API_PROTOTYPES_11061()
+
+	api.update(api_11061)
+	alias.update(alias_11061)
+
+	return api, alias
+
+
 #note: used to determine which API_PROTOTYPE to load. Calling cuDriverGetVersion does not require initializing the driver
 VERSION_PROTOTYPE = ("cuDriverGetVersion", (CUresult, POINTER(c_int)))
 
@@ -973,4 +986,5 @@ API_PROTOTYPES = { 8000:API_PROTOTYPES_08000,
 				  11051:API_PROTOTYPES_11051,
 				  11052:API_PROTOTYPES_11052,
 				  11060:API_PROTOTYPES_11060,
-				  11061:API_PROTOTYPES_11061}
+				  11061:API_PROTOTYPES_11061,
+				  11070:API_PROTOTYPES_11070}
