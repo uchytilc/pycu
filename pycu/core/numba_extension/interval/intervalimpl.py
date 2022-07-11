@@ -249,9 +249,9 @@ def interval_factory(interval, interval_t):
 					with builder.if_else(negative) as (true, false):
 						with true:
 							temp = neg_(builder, [f._getvalue()])
-							temp = cgutils.create_struct_proxy(interval_t)(context, builder, value = temp)
-							out.lo = temp.lo
-							out.hi = temp.hi
+							temp_ = cgutils.create_struct_proxy(interval_t)(context, builder, value = temp)
+							out.lo = temp_.lo
+							out.hi = temp_.hi
 						with false:
 							out.lo = zero
 							out.hi = max_(builder, [abs_(builder, [f.lo]), abs_(builder, [f.hi])])
@@ -707,8 +707,8 @@ def interval_factory(interval, interval_t):
 		def atan(f):
 			out = cgutils.create_struct_proxy(interval_t)(context, builder)
 
-			atan_lo = atan_(builder, [cast(context, builder, x.lo)])
-			atan_hi = atan_(builder, [cast(context, builder, x.hi)])
+			atan_lo = atan_(builder, [cast(context, builder, f.lo)])
+			atan_hi = atan_(builder, [cast(context, builder, f.hi)])
 
 			out.lo = val_rd(context, builder, atan_lo)
 			out.hi = val_ru(context, builder, atan_hi)
@@ -826,17 +826,17 @@ def interval_factory(interval, interval_t):
 			g = cgutils.create_struct_proxy(interval_t)(context, builder, value = args[1])
 			return caller(context, builder, sig, args, f, g)
 
-	def binary_op_interval_scalar(op, caller, scalar_type = types.Number):
+	def binary_op_interval_scalar(op, caller, scalar_type = types.Number): #scalar_type = interval_t._member_t
 		@impl_registry.lower(op, interval_t, scalar_type)
 		def cuda_op_interval_scalar(context, builder, sig, args):
 			f = cgutils.create_struct_proxy(interval_t)(context, builder, value = args[0])
-			g = context.cast(builder, args[1], sig.args[1], interval_t._member_t)
+			g = context.cast(builder, args[1], sig.args[1], interval_t._member_t) #scalar_type
 			return caller(context, builder, sig, args, f, g)
 
-	def binary_op_scalar_interval(op, caller, scalar_type = types.Number):
+	def binary_op_scalar_interval(op, caller, scalar_type = types.Number): #scalar_type = interval_t._member_t
 		@impl_registry.lower(op, scalar_type, interval_t)
 		def cuda_op_scalar_interval(context, builder, sig, args):
-			f = context.cast(builder, args[0], sig.args[0], interval_t._member_t)
+			f = context.cast(builder, args[0], sig.args[0], interval_t._member_t) #scalar_type
 			g = cgutils.create_struct_proxy(interval_t)(context, builder, value = args[1])
 			return caller(context, builder, sig, args, f, g)
 
@@ -1044,29 +1044,128 @@ def interval_factory(interval, interval_t):
 		# return pow(*intervals)
 
 	# def pow_interval_int(context, builder, sig, args, *intervals):
-		# def pow(x,n,z):
-		# 	# with builder.if_else(builder.icmp_signed('==', n, zero_int)) as (true, false):
-		# 	# 	with true:
-		# 	# 		z.lo = zero_float
-		# 	# 		z.hi = zero_float
-		# 	# 	with false:
-		# 	# 		# n = 1
-		# 	# 		# x = interval(self.lo, self.hi)
-		# 	# 		with builder.if_then(builder.icmp_signed('<', n, zero_int)):
-		# 	# 			# x = 1 / self
-		# 	# 			# n = -n
+	# 	zero_i = context.get_constant(types.int64, 0)
+	# 	one_i = context.get_constant(types.int64, 1)
 
-		# 	# 		# while n > 1:
-		# 	# 		# 	if n % 2 == 0:
-		# 	# 		# 		x = x * x
-		# 	# 		# 		n = n / 2
-		# 	# 		# 	else:
-		# 	# 		# 		y = x * y
-		# 	# 		# 		x = x * x
-		# 	# 		# 		n = (n - 1) / 2
-		# 	# 		# return x * y
-		# 	return z
-		# return pow(*intervals)
+	# 	zero = const_zero(context)
+	# 	# one = const_one(context)
+
+	# 	# one = context.get_constant(, 1)
+
+	# 	sub_ = context.get_function(operator.sub, signature(*([types.int64]*3)))
+
+
+	# 	def pow(x,n):
+	# 		out = cgutils.create_struct_proxy(interval_t)(context, builder)
+
+	# 		with builder.if_else(builder.icmp_signed('==', n, zero_i)) as (true, false):
+	# 			with true:
+	# 				out.lo = zero
+	# 				out.hi = zero
+	# 			with false:
+	# 				pow_body = builder.append_basic_block("pow_interval_int.body")
+	# 				pow_end = builder.append_basic_block("pow_interval_int.end")
+
+	# 				m = cgutils.alloca_once_value(builder, n)
+
+	# 				builder.branch(pow_body)
+	# 				with builder.goto_block(pow_body):
+	# 					with builder.if_then(builder.icmp_signed('>', builder.load(m), one_i)):
+	# 						builder.store(sub_(builder, [builder.load(m), one_i]), m)
+
+	# 						builder.branch(pow_body)
+
+	# 					out.lo = zero
+	# 					out.hi = zero
+
+
+
+	# 				# 	# # n = 1
+	# 				# 	# # x = interval(self.lo, self.hi)
+	# 				# 	# 	# x = 1 / self
+	# 				# 	# 	# n = -n
+
+	# 				# 	# # while n > 1:
+	# 				# 	# # 	if n % 2 == 0:
+	# 				# 	# # 		x = x * x
+	# 				# 	# # 		n = n / 2
+	# 				# 	# # 	else:
+	# 				# 	# # 		y = x * y
+	# 				# 	# # 		x = x * x
+	# 				# 	# # 		n = (n - 1) / 2
+	# 				# 	# # return x * y
+
+	# 					builder.branch(pow_end)
+	# 				builder.position_at_end(pow_end)
+
+	# 		return out._getvalue()
+	# 	return pow(*intervals)
+
+
+
+
+			# # negate = cgutils.alloca_once_value(builder, inactive)
+
+			# # out = cgutils.create_struct_proxy(interval_t)(context, builder)
+
+			# #use goto branch to emulate recursion
+			# builder.branch(cos_body)
+			# with builder.goto_block(cos_body):
+			# 	width = sub_ru(builder, [f.hi, f.lo])
+			# 	with builder.if_else(builder.fcmp_unordered('>=', width, pi2.lo)) as (true, false):
+			# 		# with true:
+			# 		# 	out.lo = n_one
+			# 		# 	out.hi = one
+			# 		# with false:
+			# 		# 	temp1 = trig_shift_negative_interval(context, builder, sig, args, f)
+			# 		# 	temp2 = trig_mod_interval_interval(context, builder, sig, args, temp1, pi2)
+			# 		# 	f.lo = temp2.lo
+			# 		# 	f.hi = temp2.hi
+			# 		# 	with builder.if_else(builder.fcmp_unordered('>=', f.lo, pi.hi)) as (true, false):
+			# 		# 		with true:
+			# 		# 			temp3 = sub_(builder, [f._getvalue(), pi._getvalue()])
+			# 		# 			temp3 = cgutils.create_struct_proxy(interval_t)(context, builder, value = temp3)
+
+			# 		# 			f.lo = temp3.lo
+			# 		# 			f.hi = temp3.hi
+
+			# 		# 			#flip negate bit so that on next loop through cos_body the interval is negated
+			# 		# 			builder.store(builder.not_(builder.load(negate)), negate)
+			# 		# 			builder.branch(cos_body)
+			# 		# 		with false:
+			# 		# 			cos_lo = val_rd(context, builder, cos_(builder, [cast(context, builder, f.lo)]))
+			# 		# 			cos_hi = val_ru(context, builder, cos_(builder, [cast(context, builder, f.hi)]))
+			# 		# 			with builder.if_else(builder.fcmp_unordered("<=", f.hi, pi.lo)) as (true, false):
+			# 		# 				with true:
+			# 		# 					out.lo = cos_hi
+			# 		# 					out.hi = cos_lo
+			# 		# 				with false:
+			# 		# 					with builder.if_else(builder.fcmp_unordered("<=", f.hi, pi2.lo)) as (true, false):
+			# 		# 						with true:
+			# 		# 							out.lo = n_one
+			# 		# 							out.hi = max_(builder, [cos_lo, cos_hi])
+			# 		# 						with false:
+			# 		# 							out.lo = n_one
+			# 		# 							out.hi = one
+			# 	builder.branch(cos_end)
+			# builder.position_at_end(cos_end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	# def pow_interval_float(context, builder, sig, args, *intervals):
 		# log = context.get_function(mathfuncs.log, signature(*([interval_t]*2)))
@@ -1365,11 +1464,25 @@ def interval_factory(interval, interval_t):
 	##############################################
 	##############################################
 
-	# decl_registry.register_global(operator.pow)(binary_op_template)
-	# binary_op_interval_interval(operator.pow, pow_interval_interval)
-	# binary_op_interval_scalar(operator.pow, pow_interval_int, types.Integer)
-	# binary_op_interval_scalar(operator.pow, pow_interval_float, types.Float)
-	# binary_op_scalar_interval(operator.pow, pow_scalar_interval), types.Integer
+	# class pow_op_template(ConcreteTemplate):
+	# 	cases = [#signature(interval_t, interval_t, interval_t),
+	# 			 # signature(interval_t, interval_t._member_t, interval_t),
+	# 			 # signature(interval_t, interval_t, interval_t._member_t)
+	# 			 signature(interval_t, interval_t, types.int64)]
+
+	# def pow_op_interval_int(op, caller):
+	# 	@impl_registry.lower(op, interval_t, types.Integer)
+	# 	def cuda_op_interval_scalar(context, builder, sig, args):
+	# 		f = cgutils.create_struct_proxy(interval_t)(context, builder, value = args[0])
+	# 		g = context.cast(builder, args[1], sig.args[1], types.int64)
+	# 		return caller(context, builder, sig, args, f, g)
+
+
+	# decl_registry.register_global(operator.pow)(pow_op_template)
+	# # binary_op_interval_interval(operator.pow, pow_interval_interval)
+	# pow_op_interval_int(operator.pow, pow_interval_int)
+	# # binary_op_interval_scalar(operator.pow, pow_interval_float, types.Float)
+	# # # binary_op_scalar_interval(operator.pow, pow_scalar_interval)
 
 	##############################################
 	##############################################
