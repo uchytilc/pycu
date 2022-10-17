@@ -805,6 +805,7 @@ def launch_kernel(f, griddim, blockdim, params, shmem = 0, stream = 0, extra = N
 	params = (c_void_p * len(params))(*[addressof(p) for p in params])
 	#extra
 
+
 	err = cuLaunchKernel(f, griddimx, griddimy, griddimz, blockdimx, blockdimy, blockdimz, shmem, stream, params, extra)
 	check_driver_error_either(err, "cuLaunchKernel error")
 

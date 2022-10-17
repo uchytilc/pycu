@@ -41,6 +41,16 @@ def compile_source(sources, entry_points, nvrtc_options = {}, libcudadert = Fals
 
 	entry_points, name_expressions = get_name_expressions(entry_points)
 	nvrtc_options_updated.update({"arch":find_closest_supported_arch(nvrtc_options.get('arch', None))})
+			# 	int major = 0;
+			# 	int minor = 0;
+
+			# 	CUresult err;
+			# 	err = cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, this->dev);
+			# 	MateriaContext::CUDACheck(err, "MateriaContext", "CompileModule", "cuDeviceGetAttribute", "dev", false);
+			# 	err = cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, this->dev);
+			# 	MateriaContext::CUDACheck(err, "MateriaContext", "CompileModule", "cuDeviceGetAttribute", "dev", false);
+
+			# 	std::string compute = "compute_" + std::to_string(major) + std::to_string(minor);
 	nvrtc_options_updated.update({"default-device":nvrtc_options.get("default-device", True)})
 
 	if name_expressions:
@@ -62,8 +72,8 @@ def compile_source(sources, entry_points, nvrtc_options = {}, libcudadert = Fals
 
 	module = jitify.compile()
 
-	#note: save module to prevent it from being garbage collected
-	context_manager.add_module(module)
+	# #note: save module to prevent it from being garbage collected
+	# context_manager.add_module(module)
 
 	kernels = []
 	for entry in entry_points:
@@ -71,7 +81,7 @@ def compile_source(sources, entry_points, nvrtc_options = {}, libcudadert = Fals
 
 	if len(kernels) == 1:
 		kernels = kernels[0]
-	return kernels
+	return kernels, module
 
 def compile_file(path, *args, **kwargs):
 	return compile_source(open_file(path), *args, **kwargs)

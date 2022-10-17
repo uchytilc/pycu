@@ -172,7 +172,7 @@ class Jitify:
 		if not isinstance(name_expressions, (list, tuple)):
 			name_expressions = [name_expressions]
 
-		nvrtc = NVRTC(source, name, I = nvrtc_options.get('I', []))
+		nvrtc = NVRTC(source, name = name) #I = nvrtc_options.get('I', [])
 
 		for name_expression in name_expressions:
 			if name_expression:

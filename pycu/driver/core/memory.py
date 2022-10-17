@@ -89,11 +89,24 @@ class CuBuffer:
 	def __repr__(self):
 		return f"CuBuffer({self.nbytes}) <{int(self)}>"
 
+	def __len__(self):
+		return self.nbytes
+
 	def __int__(self):
 		return self.handle.value
 
 	def __index__(self):
 		return int(self)
+
+	@property
+	def __cuda_array_interface__(self):
+		dtype = np.dtype(np.uint8)
+		return {'shape': (self.nbytes,),
+				'strides': (dtype.itemsize,),
+				'typestr': dtype.name,
+				'descr': dtype.descr,
+				'data': (self.handle.value, False),
+				'version': 3}
 
 	def copy_to_host(self, dst, nbytes = np.uint64(-1), offset = 0, stream = 0):
 		nbytes = min(nbytes, self.nbytes)
@@ -177,7 +190,7 @@ class CuArray(CuBuffer):
 		self.size = size
 		self.dtype = np.dtype(dtype)
 
-		super().__init__(self.dtype.itemsize*self.size, handle = handle, auto_free = auto_free)
+		super().__init__(self.dtype.itemsize * self.size, handle = handle, auto_free = auto_free)
 
 	def __repr__(self):
 		return f"CuArray({self.size}, {self.dtype}) <{self.handle}>"
@@ -190,17 +203,17 @@ class CuArray(CuBuffer):
 			start = idx.start if idx.start != None else 0
 			stop = idx.stop if idx.stop != None else self.size - 1
 			size = stop - start
-			handle = CUdeviceptr(self.handle.value + start*self.dtype.itemsize)
+			handle = CUdeviceptr(self.handle.value + start * self.dtype.itemsize)
 		else:
 			size = 1
-			handle = CUdeviceptr(self.handle.value + idx*self.dtype.itemsize)
+			handle = CUdeviceptr(self.handle.value + idx * self.dtype.itemsize)
 
 		return CuArray(size, self.dtype, handle = handle, auto_free = False)
 
 	@property
 	def __cuda_array_interface__(self):
 		return {'shape': (self.size,),
-				'strides': None,
+				'strides': (self.dtype.itemsize,),
 				'typestr': self.dtype.name,
 				'descr': self.dtype.descr,
 				'data': (self.handle.value, False),
