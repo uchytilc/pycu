@@ -17,7 +17,7 @@ if include_numba_extentions:
 	from .numba_extension.vector.vectorfuncs import *
 
 
-def div_up(x, y):
+def div_ru(x, y):
 	return (x + y - 1)//y
 
 

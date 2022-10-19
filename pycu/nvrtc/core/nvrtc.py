@@ -222,554 +222,577 @@ class NVRTCPtr:
 	def get_lowered_name(self, name_expression):
 		return get_lowered_name(self.handle, name_expression.encode('utf8'))
 
-class NVRTCCache:
-	def __init__(self):
-		#absolute path to file
-		#file source
-		self.source = {}
-
-		#absolute path to file
-		#absolute path to header files contained within file
-		self.headers = {}
-
-		#absolute path to file
-		#include names within file
-		self.includes = {}
-
-	def clear(self):
-		self.source.clear()
-		self.headers.clear()
-		self.includes.clear()
-
 class NVRTC(NVRTCPtr):
-	cache = NVRTCCache()
+	def __init__(self, source, *, headers = {}, name = ""):
 
-	def __init__(self, source, name = "", cache = True, I = [], load_headers = True):
-		self.do_cache = cache
-
-		# include_dir = "/usr/local/cuda/include/"
-		I = [os.getcwd(),
-			 os.path.dirname(os.path.realpath(__file__))] + I
-			 #os.path.dirname(os.path.realpath(sys.argv[0]))
-
-		headers = {}
-		if load_headers:
-			headers.update(self.load_headers(source, I = I))
-		header_src, header_names = prepare_headers(headers)
+		# # include_dir = "/usr/local/cuda/include/"
+		# I = [os.getcwd(),
+		# 	 os.path.dirname(os.path.realpath(__file__))] + I
+		# 	 #os.path.dirname(os.path.realpath(sys.argv[0]))
 
 		source = source.encode('utf8')
 		name = name.encode('utf8')
+
+		header_src, header_names = prepare_headers(headers)
 
 		handle = create_program(source, header_src, header_names, name)
 		weakref.finalize(self, destroy_program, handle)
 
 		super().__init__(handle)
 
-	def load_headers(self, source, I = []):
-		includes = get_includes(source)
-
-		queue = []
-		for include in includes:
-			hpath = find_header(include, I)
-			hdir = hpath.rsplit(os.path.sep, 1)[0]
-
-			queue.append((include, hpath))
-
-			loaded = set()
-			cache = self.cache
-			if not self.do_cache:
-				#create temporary cache to load headers
-				cache = NVRTCCache()
-			load_headers(hpath, cache, loaded, [hdir] + I)
-
-		#generate header name -> source mapping for NVRTC
-		headers = {}
-		while queue:
-			include, path = queue.pop(0)
-			# print(include, path)
-			headers[include] = cache.source[path]
-			for include, path in zip(cache.includes[path], cache.headers[path]):
-				if path not in headers:
-					queue.append((include, path))
-
-		# print(headers.keys())
-		return headers
-
 def prepare_headers(headers):
 	#note: header names are the names exaclty how they appear in the c++ files
-	header_src   = (c_char_p * len(headers))(*[c_char_p(header.encode('utf8')) for header in headers.values()])
 	header_names = (c_char_p * len(headers))(*[c_char_p(name.encode('utf8')) for name in headers.keys()])
+	header_src   = (c_char_p * len(headers))(*[c_char_p(header.encode('utf8')) for header in headers.values()])
 
-	return header_src, header_names
-
-def load_headers(path, nvrtc_cache, loaded, I = []):
-	#prevents infinite recursion with circular header dependencies
-	if path in loaded:
-		return
-
-	if path not in nvrtc_cache.source:
-		source = load_header(path)
-		includes = get_includes(source)
-
-		loaded.add(path)
-
-		nvrtc_cache.source[path] = source
-		nvrtc_cache.headers[path] = []
-		nvrtc_cache.includes[path] = []
-
-		for include in includes:
-			try:
-				hpath = find_header(include, I)
-			except FileNotFoundError:
-				raise FileNotFoundError(path)
-
-			hdir  = hpath.rsplit(os.path.sep, 1)[0]
-
-			nvrtc_cache.headers[path].append(hpath)
-			nvrtc_cache.includes[path].append(include) 
-			#TO DO
-				#Do I want to maintain all directories as I move down dir chain?
-			load_headers(hpath, nvrtc_cache, loaded, [hdir] + I[1:])
-
-def load_header(path):
-	#abs path to header file (if just a name check if it is a jitsafe header)
-	if path in nvrtc_headers.keys():
-		source = nvrtc_headers[path]
-	else:
-		source = open_file(path)
-	return source
-
-def find_header(include, paths):
-	if include in nvrtc_headers.keys():
-		return include
-	for path in paths:
-		hpath = os.path.join(path, replace_include_separators(include))
-		if os.path.exists(hpath):
-			# subpath, *include = include.rsplit(os.path.sep, 1)
-			# if include:
-			# 	path = os.path.join(path, subpath)
-			return hpath
-	nl = '\n'
-	raise FileNotFoundError(f'{include} could not be found at any of the known paths\n{nl.join([str(path) for path in paths])}')
-
-def replace_include_separators(header):
-	#replace `/` used wtihinin include with the os specific seperators so the file can be found
-	header = header.rsplit('/')
-	for _ in range(len(header)):
-		header.append(*(header.pop().rsplit('\\')))
-	header = f"{os.path.sep}".join(header)
-
-	return header
-
-def get_includes(source):
-	#TODO
-		#defines should be kept for all headers included in a source file
-	parser = Parser(source)
-	parser.defines["__CUDACC__"] = True
-
-	return parser.get_includes()
-
-class TokenType(Enum):
-	unknown = auto()
-	backslash = auto()
-	forwardslash = auto()
-	period = auto()
-	comma = auto()
-	asterisk = auto()
-	hashtag = auto()
-	exclamation = auto()
-	semicolon = auto()
-	colon = auto()
-	left_parenthesis = auto()
-	right_parenthesis = auto()
-	left_brace = auto()
-	right_brace = auto()
-	left_bracket = auto()
-	right_bracket = auto()
-	lt = auto()
-	gt = auto()
-	equal = auto()
-	le = auto()
-	ge = auto()
-	string = auto()
-	char = auto()
-	newline = auto()
-	text = auto()
-	numeric = auto()
-	end = auto()
-
-class Token:
-	def __init__(self, text, type):
-		self.text = text
-		self.type = type
-
-	@property
-	def length(self):
-		return len(self.text)
-
-	def __repr__(self):
-		return self.text
-
-	def __str__(self):
-		return self.text
-
-	def __eq__(self, other):
-		return self.text == other
-
-	def __hash__(self):
-		return hash(self.text)
-
-	# def __contains__(self, other):
-	# 	return other in self.
-
-class Tokenizer:
-	def __init__(self, source):
-		self.source = source
-		self.length = len(source)
-		self.pos = 0
-
-	@staticmethod
-	def is_EOL(char):
-		return (char == '\n') or (char == '\r')
-
-	@staticmethod
-	def is_whitespace(char):
-		return (char == ' ') or (char == '\t') or Tokenizer.is_EOL(char)
-
-	@staticmethod
-	def is_alpha(char):
-		return ('a' <= char and char <= 'z') or ('A' <= char and char <= 'Z')
-
-	@staticmethod
-	def is_number(char):
-		return '0' <= char and char <= '9'
-
-	@staticmethod
-	def is_numeric(char):
-		return Tokenizer.is_number(char) or char == '.' or char == 'e' or char == '+' or char == '-'
-
-	@staticmethod
-	def is_text(char):
-		return Tokenizer.is_alpha(char) or Tokenizer.is_number(char) or char == '_'
-
-	# def probe_ahead(self, count, skip_newline = True):
-		# #returns the next n tokens ahead of current token
-		# tokens = []
-		# pos = self.pos
-		# for n in range(count):
-		# 	tokens.append(self.get_token(skip_newline = skip_newline))
-		# self.pos = pos
-
-		# return tokens
-
-	def get_token(self, skip_newline = True):
-		#skip whitespace
-		while True:
-			if self.pos == self.length:
-				return Token('', TokenType.end)
-			elif self.is_whitespace(self.source[self.pos]):
-				self.pos += 1
-				if self.is_EOL(self.source[self.pos - 1]) and not skip_newline:
-					return Token(self.source[self.pos - 1], TokenType.newline)
-			#cpp style comment
-			elif self.pos < self.length - 1 and self.source[self.pos] == '/' and self.source[self.pos + 1] == '/':
-				#advance past the start comment
-				self.pos += 2
-				#parse until end of line
-				while self.pos < self.length and not self.is_EOL(self.source[self.pos]):
-					self.pos += 1
-			#c style comment
-			elif self.pos < self.length - 1 and self.source[self.pos] == '/' and self.source[self.pos + 1] == '*':
-				#advance past the start comment
-				self.pos += 2
-				while self.pos < self.length - 1 and self.source[self.pos] == '*' and self.source[self.pos + 1] == '/':
-					self.pos += 1
-				#advance past the end comment
-				if self.source[self.pos] == '*':
-					self.pos += 2
-			else:
-				break
-
-		start = self.pos
-		self.pos += 1
-		if start == self.length:
-			return Token('', TokenType.end)
-		elif self.source[start] == '\\':
-			return Token(self.source[start:self.pos], TokenType.backslash)
-		elif self.source[start] == '/':
-			return Token(self.source[start:self.pos], TokenType.forwardslash)
-		elif self.source[start] == '.':
-			return Token(self.source[start:self.pos], TokenType.period)
-		elif self.source[start] == ',':
-			return Token(self.source[start:self.pos], TokenType.comma)
-		elif self.source[start] == '*':
-			return Token(self.source[start:self.pos], TokenType.asterisk)
-		elif self.source[start] == '#':
-			return Token(self.source[start:self.pos], TokenType.hashtag)
-		elif self.source[start] == '!':
-			return Token(self.source[start:self.pos], TokenType.hashtag)
-		elif self.source[start] == ';':
-			return Token(self.source[start:self.pos], TokenType.semicolon)
-		elif self.source[start] == ':':
-			return Token(self.source[start:self.pos], TokenType.colon)
-		elif self.source[start] == '(':
-			return Token(self.source[start:self.pos], TokenType.left_parenthesis)
-		elif self.source[start] == ')':
-			return Token(self.source[start:self.pos], TokenType.right_parenthesis)
-		elif self.source[start] == '{':
-			return Token(self.source[start:self.pos], TokenType.left_brace)
-		elif self.source[start] == '}':
-			return Token(self.source[start:self.pos], TokenType.right_brace)
-		elif self.source[start] == '[':
-			return Token(self.source[start:self.pos], TokenType.left_bracket)
-		elif self.source[start] == ']':
-			return Token(self.source[start:self.pos], TokenType.right_bracket)
-		elif self.source[start] == '<':
-			if self.source[self.pos + 1] == '=':
-				self.pos += 1
-				return Token(self.source[start:self.pos], TokenType.le)
-			return Token(self.source[start:self.pos], TokenType.lt)
-		elif self.source[start] == '>':
-			if self.source[self.pos + 1] == '=':
-				self.pos += 1
-				return Token(self.source[start:self.pos], TokenType.ge)
-			return Token(self.source[start:self.pos], TokenType.gt)
-		elif self.source[start] == '=':
-			if self.source[self.pos + 1] == '=':
-				self.pos += 1
-				return Token(self.source[start:self.pos], TokenType.eq)
-			return Token(self.source[start:self.pos], TokenType.equal)
-		# elif self.source[start] == "'":
-			# start += 1
-			# self.pos += 2
-			# return Token(self.source[start:self.pos - 1], TokenType.char)
-		elif self.source[start] == '"':
-			start += 1
-			while self.pos < self.length and self.source[self.pos] != '"':
-				#avoid erroneous string ending of the string contains an escape character
-				if self.pos < self.length and self.source[self.pos] == "\\":
-					self.pos += 1
-				self.pos += 1
-			if self.pos == self.length:
-				return Token('', TokenType.end)
-			self.pos += 1
-			return Token(self.source[start:self.pos - 1], TokenType.string)
-		else:
-			if self.is_alpha(self.source[start]) or self.source[start] == '_':
-				while self.pos < self.length and self.is_text(self.source[self.pos]):
-					self.pos += 1
-				if self.pos == self.length:
-					return Token('', TokenType.end)
-				return Token(self.source[start:self.pos], TokenType.text)
-			#note: this only recognizes negative numbers of the - sign is next to the number
-			elif self.is_number(self.source[start]) or (self.source[start] == '.' and self.is_number(self.source[start + 1])) or (self.source[start] == '-' and self.is_number(self.source[start + 1])):
-				while self.pos < self.length and self.is_numeric(self.source[self.pos]):
-					self.pos += 1
-				if self.pos == self.length:
-					return Token('', TokenType.end)
-				return Token(self.source[start:self.pos], TokenType.numeric)
-			else:
-				return Token('', TokenType.unknown)
-
-#states
-inactive = 0
-active = 1
-complete = 2
-
-class Parser:
-	#A rudimentary parser which attempts to find all valid #include statements within a c source file
-
-	def __init__(self, source):
-		self.tokenizer = Tokenizer(source)
-		self.includes = []
-		self.defines = {}
-		self.state = [True]
-
-	def get_includes(self):
-		parse_source(self.tokenizer, self.includes, self.defines, self.state)
-		# print(self.includes)
-		return self.includes
-
-def if_conditional(tokenizer, defines):
-	token = tokenizer.get_token()
-
-	#TODO
-		#need to check for line wrapping character if conditional spans more than one line
-
-	tokens = []
-	while token.type != TokenType.newline:
-		tokens.append(token)
-		token = tokenizer.get_token(skip_newline = False)
-
-	if len(tokens) == 1:
-		pass
-		#check if true, false, 0, 1
-	else:
-		pass
-		#TODO
-			#handle more complex define statements
-		#if defined(...)
-
-	return False
-
-def ifdef_conditional(tokenizer, defines):
-	return tokenizer.get_token() in defines
-
-def ifndef_conditional(tokenizer, defines):
-	return not ifdef_conditional(tokenizer, defines)
-
-def undefine(tokenizer, defines):
-	token = tokenizer.get_token()
-	defines.remove(tokenizer.get_token().text)
-
-def define(tokenizer, defines):
-	token = tokenizer.get_token()
-
-	#TODO
-		#need to check for line wrapping character if define spans more than one line
-
-	tokens = []
-	while token.type != TokenType.newline:
-		tokens.append(token)
-		token = tokenizer.get_token(skip_newline = False)
-
-	if len(tokens) == 1:
-		defines[tokens[0].text] = None
-	elif len(tokens) == 2:
-		defines[tokens[0].text] = tokens[1].text
-	else:
-		pass
-		#TODO
-			#handle more complex define statements
-
-def add_include(tokenizer, includes):
-	token = tokenizer.get_token()
-	if token.type == TokenType.lt:
-		token = tokenizer.get_token()
-		include = []
-		while token != ">":
-			include.append(token.text)
-			token = tokenizer.get_token()
-		includes.append(''.join(include))
-	elif token.type == TokenType.string:
-		includes.append(token.text)
-	# else:
-		# raise ValueError("include not understood")
-
-def preprocessor_macro(tokenizer, includes, defines, state):
-	#next token should be the preprocessor operation
-	token = tokenizer.get_token()
-
-	if token in {'if', 'ifdef', 'ifndef'}:
-		#a given conditional parses from the entrence (if, ifdef, ifndef) until endif. If another if, ifdef, ifndef
-		#is reached before the previous endif, a recursive call is made that itself advances until it finds an endif.
-		#This will progress the parent function past the internal endif so it will not exit.
-
-		#asses the truthness of the start of the conditional if it is within another active conditional (or the top most conditional)
-		if state[-1] == active:
-			if token == 'if':
-				state.append(if_conditional(tokenizer, defines))
-			elif token == 'ifdef':
-				state.append(ifdef_conditional(tokenizer, defines))
-			elif token == 'ifndef':
-				state.append(ifndef_conditional(tokenizer, defines))
-		else:
-			state.append(Complete)
-		parse_source(tokenizer, includes, defines, state)
-	elif token in {'elif', 'else'} and state[-1] != complete:
-		#a previous conditional was true and the conditional is complete
-		if state[-1] == active:
-			state[-1] = complete
-		else:
-			#asses the truthness of the start of the conditional if a previous conditional was not satisfied
-			if token == 'elif':
-				state[-1] = if_conditional(tokenizer, defines)
-			elif token == 'else':
-				state[-1] = active
-	elif token == 'endif':
-		state.pop()
-	elif token == "include" and state[-1] == active:
-		add_include(tokenizer, includes)
-	elif token == "define" and state[-1] == active:
-		define(tokenizer, defines)
-	elif token == "undef" and state[-1] == active:
-		undefine(tokenizer, defines)
-	# else:
-		# pass
-
-def parse_source(tokenizer, includes, defines, state):
-	while True:
-		token = tokenizer.get_token()
-		# print(f"{token}			{token.type}")
-
-		#reached end of source
-		if token.type == TokenType.end:
-			break
-		#entered a preprocessor statement
-		elif token.type == TokenType.hashtag:
-			preprocessor_macro(tokenizer, includes, defines, state)
-		# else:
-			# pass
+	return header_names, header_src
 
 
-# def get_includes(source):
-# 	#parse code loaded in for includes
 
-# 	#TO DO:
-# 		#Need to watch out for includes within compiler system defs (like _WIN32)
-# 			#if ifdef != system.os skip all lines until next ifdef or endif
+# class NVRTCCache:
+# 	def __init__(self):
+# 		#absolute path to file
+# 		#file source
+# 		self.source = {}
 
-# 	lines = source.split('\n')
-# 	includes = []
-# 	for line in lines:
-# 		if "#include" in line:
-# 			header = get_include(line)
-# 			if header:
-# 				includes.append(header)
+# 		#absolute path to file
+# 		#absolute path to header files contained within file
+# 		self.headers = {}
 
-# 	return includes
+# 		#absolute path to file
+# 		#include names within file
+# 		self.includes = {}
 
-# def get_include(line):
-# 	#extracts include name from within the line and checks if it is within a comment
-# 	line, comment = clean_line(line)
+# 	def clear(self):
+# 		self.source.clear()
+# 		self.headers.clear()
+# 		self.includes.clear()
 
-# 	#check if include statement used "" or <> and get name of header
-# 	header = line.split('"')
-# 	if len(header) - 1:
-# 		header = header[1]
+# class NVRTC(NVRTCPtr):
+# 	cache = NVRTCCache()
+
+# 	def __init__(self, source, name = "", cache = True, I = [], load_headers = True):
+# 		self.do_cache = cache
+
+# 		# include_dir = "/usr/local/cuda/include/"
+# 		I = [os.getcwd(),
+# 			 os.path.dirname(os.path.realpath(__file__))] + I
+# 			 #os.path.dirname(os.path.realpath(sys.argv[0]))
+
+# 		headers = {}
+# 		if load_headers:
+# 			headers.update(self.load_headers(source, I = I))
+# 		header_src, header_names = prepare_headers(headers)
+
+# 		source = source.encode('utf8')
+# 		name = name.encode('utf8')
+
+# 		handle = create_program(source, header_src, header_names, name)
+# 		weakref.finalize(self, destroy_program, handle)
+
+# 		super().__init__(handle)
+
+# 	def load_headers(self, source, I = []):
+# 		includes = get_includes(source)
+
+# 		queue = []
+# 		for include in includes:
+# 			hpath = find_header(include, I)
+# 			hdir = hpath.rsplit(os.path.sep, 1)[0]
+
+# 			queue.append((include, hpath))
+
+# 			loaded = set()
+# 			cache = self.cache
+# 			if not self.do_cache:
+# 				#create temporary cache to load headers
+# 				cache = NVRTCCache()
+# 			load_headers(hpath, cache, loaded, [hdir] + I)
+
+# 		#generate header name -> source mapping for NVRTC
+# 		headers = {}
+# 		while queue:
+# 			include, path = queue.pop(0)
+# 			# print(include, path)
+# 			headers[include] = cache.source[path]
+# 			for include, path in zip(cache.includes[path], cache.headers[path]):
+# 				if path not in headers:
+# 					queue.append((include, path))
+
+# 		# print(headers.keys())
+# 		return headers
+
+
+# def load_headers(path, nvrtc_cache, loaded, I = []):
+# 	#prevents infinite recursion with circular header dependencies
+# 	if path in loaded:
+# 		return
+
+# 	if path not in nvrtc_cache.source:
+# 		source = load_header(path)
+# 		includes = get_includes(source)
+
+# 		loaded.add(path)
+
+# 		nvrtc_cache.source[path] = source
+# 		nvrtc_cache.headers[path] = []
+# 		nvrtc_cache.includes[path] = []
+
+# 		for include in includes:
+# 			try:
+# 				hpath = find_header(include, I)
+# 			except FileNotFoundError:
+# 				raise FileNotFoundError(path)
+
+# 			hdir  = hpath.rsplit(os.path.sep, 1)[0]
+
+# 			nvrtc_cache.headers[path].append(hpath)
+# 			nvrtc_cache.includes[path].append(include) 
+# 			#TO DO
+# 				#Do I want to maintain all directories as I move down dir chain?
+# 			load_headers(hpath, nvrtc_cache, loaded, [hdir] + I[1:])
+
+# def load_header(path):
+# 	#abs path to header file (if just a name check if it is a jitsafe header)
+# 	if path in nvrtc_headers.keys():
+# 		source = nvrtc_headers[path]
 # 	else:
-# 		header = line.split('<', 1)[-1].split('>')[0]
+# 		source = open_file(path)
+# 	return source
+
+# def find_header(include, paths):
+# 	if include in nvrtc_headers.keys():
+# 		return include
+# 	for path in paths:
+# 		hpath = os.path.join(path, replace_include_separators(include))
+# 		if os.path.exists(hpath):
+# 			# subpath, *include = include.rsplit(os.path.sep, 1)
+# 			# if include:
+# 			# 	path = os.path.join(path, subpath)
+# 			return hpath
+# 	nl = '\n'
+# 	raise FileNotFoundError(f'{include} could not be found at any of the known paths\n{nl.join([str(path) for path in paths])}')
+
+# def replace_include_separators(header):
+# 	#replace `/` used wtihinin include with the os specific seperators so the file can be found
+# 	header = header.rsplit('/')
+# 	for _ in range(len(header)):
+# 		header.append(*(header.pop().rsplit('\\')))
+# 	header = f"{os.path.sep}".join(header)
+
 # 	return header
 
-# def clean_line(line):
-# 	cmt, n = first_substring(line, ["//", "/*"])
+# def get_includes(source):
+# 	#TODO
+# 		#defines should be kept for all headers included in a source file
+# 	parser = Parser(source)
+# 	parser.defines["__CUDACC__"] = True
 
-# 	if not cmt:
-# 		return line, []
+# 	return parser.get_includes()
 
-# 	line, comment = line.split(cmt, 1)
-# 	comment = cmt + comment
-# 	comments = [comment]
+# class TokenType(Enum):
+# 	unknown = auto()
+# 	backslash = auto()
+# 	forwardslash = auto()
+# 	period = auto()
+# 	comma = auto()
+# 	asterisk = auto()
+# 	hashtag = auto()
+# 	exclamation = auto()
+# 	semicolon = auto()
+# 	colon = auto()
+# 	left_parenthesis = auto()
+# 	right_parenthesis = auto()
+# 	left_brace = auto()
+# 	right_brace = auto()
+# 	left_bracket = auto()
+# 	right_bracket = auto()
+# 	lt = auto()
+# 	gt = auto()
+# 	equal = auto()
+# 	le = auto()
+# 	ge = auto()
+# 	string = auto()
+# 	char = auto()
+# 	newline = auto()
+# 	text = auto()
+# 	numeric = auto()
+# 	end = auto()
 
-# 	#check if block comment ends in the same line it began (ex. code /*comment*/ more code)
-# 	if cmt == "/*" and '*/' in comment:
-# 		comment, _line = comment.rsplit('*/', 1)
-# 		comments = [comment + '*/']
-# 		_line, _comment = clean_line(_line)
-# 		line += _line
-# 		if _comment:
-# 			comments.extend(_comment)
+# class Token:
+# 	def __init__(self, text, type):
+# 		self.text = text
+# 		self.type = type
 
-# 	return line, comments
+# 	@property
+# 	def length(self):
+# 		return len(self.text)
 
-# def first_substring(string, substrings):
-# 	#finds first occurrence between all substrings
-# 	sub = ''
-# 	pos = len(string)
-# 	for substring in substrings:
-# 		n = string.find(substring)
-# 		if n > -1 and n < pos:
-# 			pos = n
-# 			sub = substring
-# 	return sub, pos
+# 	def __repr__(self):
+# 		return self.text
+
+# 	def __str__(self):
+# 		return self.text
+
+# 	def __eq__(self, other):
+# 		return self.text == other
+
+# 	def __hash__(self):
+# 		return hash(self.text)
+
+# 	# def __contains__(self, other):
+# 	# 	return other in self.
+
+# class Tokenizer:
+# 	def __init__(self, source):
+# 		self.source = source
+# 		self.length = len(source)
+# 		self.pos = 0
+
+# 	@staticmethod
+# 	def is_EOL(char):
+# 		return (char == '\n') or (char == '\r')
+
+# 	@staticmethod
+# 	def is_whitespace(char):
+# 		return (char == ' ') or (char == '\t') or Tokenizer.is_EOL(char)
+
+# 	@staticmethod
+# 	def is_alpha(char):
+# 		return ('a' <= char and char <= 'z') or ('A' <= char and char <= 'Z')
+
+# 	@staticmethod
+# 	def is_number(char):
+# 		return '0' <= char and char <= '9'
+
+# 	@staticmethod
+# 	def is_numeric(char):
+# 		return Tokenizer.is_number(char) or char == '.' or char == 'e' or char == '+' or char == '-'
+
+# 	@staticmethod
+# 	def is_text(char):
+# 		return Tokenizer.is_alpha(char) or Tokenizer.is_number(char) or char == '_'
+
+# 	# def probe_ahead(self, count, skip_newline = True):
+# 		# #returns the next n tokens ahead of current token
+# 		# tokens = []
+# 		# pos = self.pos
+# 		# for n in range(count):
+# 		# 	tokens.append(self.get_token(skip_newline = skip_newline))
+# 		# self.pos = pos
+
+# 		# return tokens
+
+# 	def get_token(self, skip_newline = True):
+# 		#skip whitespace
+# 		while True:
+# 			if self.pos == self.length:
+# 				return Token('', TokenType.end)
+# 			elif self.is_whitespace(self.source[self.pos]):
+# 				self.pos += 1
+# 				if self.is_EOL(self.source[self.pos - 1]) and not skip_newline:
+# 					return Token(self.source[self.pos - 1], TokenType.newline)
+# 			#cpp style comment
+# 			elif self.pos < self.length - 1 and self.source[self.pos] == '/' and self.source[self.pos + 1] == '/':
+# 				#advance past the start comment
+# 				self.pos += 2
+# 				#parse until end of line
+# 				while self.pos < self.length and not self.is_EOL(self.source[self.pos]):
+# 					self.pos += 1
+# 			#c style comment
+# 			elif self.pos < self.length - 1 and self.source[self.pos] == '/' and self.source[self.pos + 1] == '*':
+# 				#advance past the start comment
+# 				self.pos += 2
+# 				while self.pos < self.length - 1 and self.source[self.pos] != '*' and self.source[self.pos + 1] != '/':
+# 					self.pos += 1
+# 				#advance past the end comment
+# 				if self.source[self.pos] == '*':
+# 					self.pos += 2
+# 			else:
+# 				break
+
+# 		start = self.pos
+# 		self.pos += 1
+# 		if start == self.length:
+# 			return Token('', TokenType.end)
+# 		elif self.source[start] == '\\':
+# 			return Token(self.source[start:self.pos], TokenType.backslash)
+# 		elif self.source[start] == '/':
+# 			return Token(self.source[start:self.pos], TokenType.forwardslash)
+# 		elif self.source[start] == '.':
+# 			return Token(self.source[start:self.pos], TokenType.period)
+# 		elif self.source[start] == ',':
+# 			return Token(self.source[start:self.pos], TokenType.comma)
+# 		elif self.source[start] == '*':
+# 			return Token(self.source[start:self.pos], TokenType.asterisk)
+# 		elif self.source[start] == '#':
+# 			return Token(self.source[start:self.pos], TokenType.hashtag)
+# 		elif self.source[start] == '!':
+# 			return Token(self.source[start:self.pos], TokenType.hashtag)
+# 		elif self.source[start] == ';':
+# 			return Token(self.source[start:self.pos], TokenType.semicolon)
+# 		elif self.source[start] == ':':
+# 			return Token(self.source[start:self.pos], TokenType.colon)
+# 		elif self.source[start] == '(':
+# 			return Token(self.source[start:self.pos], TokenType.left_parenthesis)
+# 		elif self.source[start] == ')':
+# 			return Token(self.source[start:self.pos], TokenType.right_parenthesis)
+# 		elif self.source[start] == '{':
+# 			return Token(self.source[start:self.pos], TokenType.left_brace)
+# 		elif self.source[start] == '}':
+# 			return Token(self.source[start:self.pos], TokenType.right_brace)
+# 		elif self.source[start] == '[':
+# 			return Token(self.source[start:self.pos], TokenType.left_bracket)
+# 		elif self.source[start] == ']':
+# 			return Token(self.source[start:self.pos], TokenType.right_bracket)
+# 		elif self.source[start] == '<':
+# 			# if self.source[self.pos + 1] == '=':
+# 			if self.source[self.pos] == '=':
+# 				self.pos += 1
+# 				return Token(self.source[start:self.pos], TokenType.le)
+# 			return Token(self.source[start:self.pos], TokenType.lt)
+# 		elif self.source[start] == '>':
+# 			# if self.source[self.pos + 1] == '=':
+# 			if self.source[self.pos] == '=':
+# 				self.pos += 1
+# 				return Token(self.source[start:self.pos], TokenType.ge)
+# 			return Token(self.source[start:self.pos], TokenType.gt)
+# 		elif self.source[start] == '=':
+# 			if self.source[self.pos + 1] == '=':
+# 				self.pos += 1
+# 				return Token(self.source[start:self.pos], TokenType.eq)
+# 			return Token(self.source[start:self.pos], TokenType.equal)
+# 		# elif self.source[start] == "'":
+# 			# start += 1
+# 			# self.pos += 2
+# 			# return Token(self.source[start:self.pos - 1], TokenType.char)
+# 		elif self.source[start] == '"':
+# 			start += 1
+# 			while self.pos < self.length and self.source[self.pos] != '"':
+# 				#avoid erroneous string ending if the string contains an escape character
+# 				if self.pos < self.length and self.source[self.pos] == "\\":
+# 					self.pos += 1
+# 				self.pos += 1
+# 			if self.pos == self.length:
+# 				return Token('', TokenType.end)
+# 			self.pos += 1
+# 			return Token(self.source[start:self.pos - 1], TokenType.string)
+# 		else:
+# 			if self.is_alpha(self.source[start]) or self.source[start] == '_':
+# 				while self.pos < self.length and self.is_text(self.source[self.pos]):
+# 					self.pos += 1
+# 				if self.pos == self.length:
+# 					return Token('', TokenType.end)
+# 				return Token(self.source[start:self.pos], TokenType.text)
+# 			#note: this only recognizes negative numbers if the - sign is next to the number
+# 			elif self.is_number(self.source[start]) or (self.source[start] == '.' and self.is_number(self.source[start + 1])) or (self.source[start] == '-' and self.is_number(self.source[start + 1])):
+# 				while self.pos < self.length and self.is_numeric(self.source[self.pos]):
+# 					self.pos += 1
+# 				if self.pos == self.length:
+# 					return Token('', TokenType.end)
+# 				return Token(self.source[start:self.pos], TokenType.numeric)
+# 			else:
+# 				return Token('', TokenType.unknown)
+
+# #states
+# inactive = 0
+# active = 1
+# complete = 2
+
+# class Parser:
+# 	#A rudimentary parser which attempts to find all valid #include statements within a c++ source file
+
+# 	def __init__(self, source):
+# 		self.tokenizer = Tokenizer(source)
+# 		self.includes = []
+# 		self.defines = {}
+# 		self.state = [True]
+
+# 	def get_includes(self):
+# 		parse_source(self.tokenizer, self.includes, self.defines, self.state)
+# 		# print(self.includes)
+# 		return self.includes
+
+# def if_conditional(tokenizer, defines):
+# 	token = tokenizer.get_token()
+
+# 	#TODO
+# 		#need to check for line wrapping character if conditional spans more than one line
+
+# 	tokens = []
+# 	while token.type != TokenType.newline:
+# 		tokens.append(token)
+# 		token = tokenizer.get_token(skip_newline = False)
+
+# 	if len(tokens) == 1:
+# 		pass
+# 		#check if true, false, 0, 1
+# 	else:
+# 		pass
+# 		#TODO
+# 			#handle more complex define statements
+# 		#if defined(...)
+
+# 	return False
+
+# def ifdef_conditional(tokenizer, defines):
+# 	return tokenizer.get_token() in defines
+
+# def ifndef_conditional(tokenizer, defines):
+# 	return not ifdef_conditional(tokenizer, defines)
+
+# def undefine(tokenizer, defines):
+# 	token = tokenizer.get_token()
+# 	defines.remove(tokenizer.get_token().text)
+
+# def define(tokenizer, defines):
+# 	token = tokenizer.get_token()
+
+# 	#TODO
+# 		#need to check for line wrapping character if define spans more than one line
+
+# 	tokens = []
+# 	while token.type != TokenType.newline:
+# 		tokens.append(token)
+# 		token = tokenizer.get_token(skip_newline = False)
+
+# 	if len(tokens) == 1:
+# 		defines[tokens[0].text] = None
+# 	elif len(tokens) == 2:
+# 		defines[tokens[0].text] = tokens[1].text
+# 	else:
+# 		pass
+# 		#TODO
+# 			#handle more complex define statements
+
+# def add_include(tokenizer, includes):
+# 	token = tokenizer.get_token()
+# 	if token.type == TokenType.lt:
+# 		token = tokenizer.get_token()
+# 		include = []
+# 		while token != ">":
+# 			include.append(token.text)
+# 			token = tokenizer.get_token()
+# 		includes.append(''.join(include))
+# 	elif token.type == TokenType.string:
+# 		includes.append(token.text)
+# 	# else:
+# 		# raise ValueError("include not understood")
+
+# def preprocessor_macro(tokenizer, includes, defines, state):
+# 	#next token should be the preprocessor operation
+# 	token = tokenizer.get_token()
+
+# 	if token in {'if', 'ifdef', 'ifndef'}:
+# 		#a given conditional parses from the entrence (if, ifdef, ifndef) until endif. If another if, ifdef, ifndef
+# 		#is reached before the previous endif, a recursive call is made that itself advances until it finds an endif.
+# 		#This will progress the parent function past the internal endif so it will not exit.
+
+# 		#asses the truthness of the start of the conditional if it is within another active conditional (or the top most conditional)
+# 		if state[-1] == active:
+# 			if token == 'if':
+# 				state.append(if_conditional(tokenizer, defines))
+# 			elif token == 'ifdef':
+# 				state.append(ifdef_conditional(tokenizer, defines))
+# 			elif token == 'ifndef':
+# 				state.append(ifndef_conditional(tokenizer, defines))
+# 		else:
+# 			state.append(Complete)
+# 		parse_source(tokenizer, includes, defines, state)
+# 	elif token in {'elif', 'else'} and state[-1] != complete:
+# 		#a previous conditional was true and the conditional is complete
+# 		if state[-1] == active:
+# 			state[-1] = complete
+# 		else:
+# 			#asses the truthness of the start of the conditional if a previous conditional was not satisfied
+# 			if token == 'elif':
+# 				state[-1] = if_conditional(tokenizer, defines)
+# 			elif token == 'else':
+# 				state[-1] = active
+# 	elif token == 'endif':
+# 		state.pop()
+# 	elif token == "include" and state[-1] == active:
+# 		add_include(tokenizer, includes)
+# 	elif token == "define" and state[-1] == active:
+# 		define(tokenizer, defines)
+# 	elif token == "undef" and state[-1] == active:
+# 		undefine(tokenizer, defines)
+# 	# else:
+# 		# pass
+
+# def parse_source(tokenizer, includes, defines, state):
+# 	while True:
+# 		token = tokenizer.get_token()
+# 		# print(f"{token}			{token.type}")
+
+# 		#reached end of source
+# 		if token.type == TokenType.end:
+# 			break
+# 		#entered a preprocessor statement
+# 		elif token.type == TokenType.hashtag:
+# 			preprocessor_macro(tokenizer, includes, defines, state)
+# 		# else:
+# 			# pass
+
+
+# # def get_includes(source):
+# # 	#parse code loaded in for includes
+
+# # 	#TO DO:
+# # 		#Need to watch out for includes within compiler system defs (like _WIN32)
+# # 			#if ifdef != system.os skip all lines until next ifdef or endif
+
+# # 	lines = source.split('\n')
+# # 	includes = []
+# # 	for line in lines:
+# # 		if "#include" in line:
+# # 			header = get_include(line)
+# # 			if header:
+# # 				includes.append(header)
+
+# # 	return includes
+
+# # def get_include(line):
+# # 	#extracts include name from within the line and checks if it is within a comment
+# # 	line, comment = clean_line(line)
+
+# # 	#check if include statement used "" or <> and get name of header
+# # 	header = line.split('"')
+# # 	if len(header) - 1:
+# # 		header = header[1]
+# # 	else:
+# # 		header = line.split('<', 1)[-1].split('>')[0]
+# # 	return header
+
+# # def clean_line(line):
+# # 	cmt, n = first_substring(line, ["//", "/*"])
+
+# # 	if not cmt:
+# # 		return line, []
+
+# # 	line, comment = line.split(cmt, 1)
+# # 	comment = cmt + comment
+# # 	comments = [comment]
+
+# # 	#check if block comment ends in the same line it began (ex. code /*comment*/ more code)
+# # 	if cmt == "/*" and '*/' in comment:
+# # 		comment, _line = comment.rsplit('*/', 1)
+# # 		comments = [comment + '*/']
+# # 		_line, _comment = clean_line(_line)
+# # 		line += _line
+# # 		if _comment:
+# # 			comments.extend(_comment)
+
+# # 	return line, comments
+
+# # def first_substring(string, substrings):
+# # 	#finds first occurrence between all substrings
+# # 	sub = ''
+# # 	pos = len(string)
+# # 	for substring in substrings:
+# # 		n = string.find(substring)
+# # 		if n > -1 and n < pos:
+# # 			pos = n
+# # 			sub = substring
+# # 	return sub, pos
 
