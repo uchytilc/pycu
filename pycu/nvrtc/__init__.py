@@ -50,11 +50,11 @@ def destroy_program(program):
 		check_nvrtc_error_either(err, 'nvrtcDestroyProgram error', program)
 
 def get_lowered_name(program, name_expression):
-	entry = c_char_p()
-	err = nvrtcGetLoweredName(program, name_expression, byref(entry))
+	lowered_name = c_char_p()
+	err = nvrtcGetLoweredName(program, name_expression, byref(lowered_name))
 	check_nvrtc_error_either(err, 'nvrtcGetLoweredName error', program)
 
-	return entry.value.decode('utf8')
+	return lowered_name.value.decode('utf8')
 
 def get_ptx(program, size = 0):
 	if not size:

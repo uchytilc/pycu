@@ -73,11 +73,11 @@ def generate_strides(shape, itemsize, order = 'C'):
 	return tuple(strides)
 
 class CuBuffer:
-	def __init__(self, nbytes, * , handle = None, auto_free = True):
+	def __init__(self, nbytes, * , handle = None, auto_free = True, const = False):
 		if handle is None:
 			handle = mem_alloc(nbytes)
-		# else:
-			# handle = CUdeviceptr(handle)
+		elif not isinstance(handle, CUdeviceptr):
+			handle = CUdeviceptr(handle)
 
 		if auto_free:
 			self._finalizer = weakref.finalize(self, mem_free, handle)
@@ -85,6 +85,7 @@ class CuBuffer:
 		self.nbytes = nbytes
 		self.handle = handle
 		self.auto_free = auto_free
+		self.const = const
 
 	def __repr__(self):
 		return f"CuBuffer({self.nbytes}) <{int(self)}>"
@@ -110,6 +111,9 @@ class CuBuffer:
 		#offset must be a multiple of the itemsize
 
 	def copy_from_host(self, src, nbytes = np.uint64(-1), offset = 0, stream = 0):
+		if self.const:
+			raise ValueError('')
+
 		nbytes = min(nbytes, self.nbytes)
 		args = [self.handle, get_handle(src), nbytes] # + ctypes.c_uint64(offset)
 
@@ -121,6 +125,9 @@ class CuBuffer:
 		memcpy(*args)
 
 	def _memset(self, memset, memset_async, value, size, offset, stream):
+		if self.const:
+			raise ValueError('')
+
 		args = [self.handle, value, size] # + ctypes.c_uint64(offset)
 
 		if stream:
@@ -173,11 +180,11 @@ class CuBuffer:
 
 
 class CuArray(CuBuffer):
-	def __init__(self, size, dtype, * , handle = None, auto_free = True):
+	def __init__(self, size, dtype, * , handle = None, auto_free = True, const = False):
 		self.size = size
 		self.dtype = np.dtype(dtype)
 
-		super().__init__(self.dtype.itemsize*self.size, handle = handle, auto_free = auto_free)
+		super().__init__(self.dtype.itemsize*self.size, handle = handle, auto_free = auto_free, const = const)
 
 	def __repr__(self):
 		return f"CuArray({self.size}, {self.dtype}) <{self.handle}>"
@@ -195,7 +202,7 @@ class CuArray(CuBuffer):
 			size = 1
 			handle = CUdeviceptr(self.handle.value + idx*self.dtype.itemsize)
 
-		return CuArray(size, self.dtype, handle = handle, auto_free = False)
+		return CuArray(size, self.dtype, handle = handle, auto_free = False, const = self.const)
 
 	@property
 	def __cuda_array_interface__(self):
@@ -278,13 +285,13 @@ class CuNDArray(CuArray):
 	# __cuda_memory__ = True
 	# __cuda_ndarray__ = True
 
-	def __init__(self, shape, dtype = np.float32, strides = None, order = 'C', * , handle = None, auto_free = True):
+	def __init__(self, shape, dtype = np.float32, strides = None, order = 'C', * , handle = None, auto_free = True, const = False):
 		if not isinstance(shape, (tuple, list, np.ndarray)):
 			shape = (shape,)
 		if strides and not isinstance(strides, (tuple, list, np.ndarray)):
 			strides = (strides,)
 
-		super().__init__(np.prod(shape), dtype, handle = handle, auto_free = auto_free)
+		super().__init__(np.prod(shape), dtype, handle = handle, auto_free = auto_free, const = const)
 
 		self.shape = shape
 		self.order = order
@@ -333,7 +340,7 @@ class CuNDArray(CuArray):
 		if auto_free:
 			#prevents the memory from being garbage collected when transfering ownership of the pointer
 			self._finalizer.detach()
-		return CuArray(self.size, self.dtype, handle = self.handle, auto_free = auto_free)
+		return CuArray(self.size, self.dtype, handle = self.handle, auto_free = auto_free, const = self.const)
 
 	# # def memset(self, value, size, stream = 0):
 	# # 	self.memset(value, size, stream)

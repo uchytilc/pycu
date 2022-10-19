@@ -866,7 +866,7 @@ def interval_factory(interval, interval_t):
 			out = cgutils.create_struct_proxy(interval_t)(context, builder)
 
 			out.lo = add_rd(builder, [f.lo, g])
-			out.hi = add_rd(builder, [f.hi, g])
+			out.hi = add_ru(builder, [f.hi, g])
 
 			return out._getvalue()
 		return add(*intervals)
@@ -1044,62 +1044,62 @@ def interval_factory(interval, interval_t):
 		# return pow(*intervals)
 
 	# def pow_interval_int(context, builder, sig, args, *intervals):
-	# 	zero_i = context.get_constant(types.int64, 0)
-	# 	one_i = context.get_constant(types.int64, 1)
+		# zero_i = context.get_constant(types.int64, 0)
+		# one_i = context.get_constant(types.int64, 1)
 
-	# 	zero = const_zero(context)
-	# 	# one = const_one(context)
+		# zero = const_zero(context)
+		# # one = const_one(context)
 
-	# 	# one = context.get_constant(, 1)
+		# # one = context.get_constant(, 1)
 
-	# 	sub_ = context.get_function(operator.sub, signature(*([types.int64]*3)))
-
-
-	# 	def pow(x,n):
-	# 		out = cgutils.create_struct_proxy(interval_t)(context, builder)
-
-	# 		with builder.if_else(builder.icmp_signed('==', n, zero_i)) as (true, false):
-	# 			with true:
-	# 				out.lo = zero
-	# 				out.hi = zero
-	# 			with false:
-	# 				pow_body = builder.append_basic_block("pow_interval_int.body")
-	# 				pow_end = builder.append_basic_block("pow_interval_int.end")
-
-	# 				m = cgutils.alloca_once_value(builder, n)
-
-	# 				builder.branch(pow_body)
-	# 				with builder.goto_block(pow_body):
-	# 					with builder.if_then(builder.icmp_signed('>', builder.load(m), one_i)):
-	# 						builder.store(sub_(builder, [builder.load(m), one_i]), m)
-
-	# 						builder.branch(pow_body)
-
-	# 					out.lo = zero
-	# 					out.hi = zero
+		# sub_ = context.get_function(operator.sub, signature(*([types.int64]*3)))
 
 
+		# def pow(x,n):
+		# 	out = cgutils.create_struct_proxy(interval_t)(context, builder)
 
-	# 				# 	# # n = 1
-	# 				# 	# # x = interval(self.lo, self.hi)
-	# 				# 	# 	# x = 1 / self
-	# 				# 	# 	# n = -n
+		# 	with builder.if_else(builder.icmp_signed('==', n, zero_i)) as (true, false):
+		# 		with true:
+		# 			out.lo = zero
+		# 			out.hi = zero
+		# 		with false:
+		# 			pow_body = builder.append_basic_block("pow_interval_int.body")
+		# 			pow_end = builder.append_basic_block("pow_interval_int.end")
 
-	# 				# 	# # while n > 1:
-	# 				# 	# # 	if n % 2 == 0:
-	# 				# 	# # 		x = x * x
-	# 				# 	# # 		n = n / 2
-	# 				# 	# # 	else:
-	# 				# 	# # 		y = x * y
-	# 				# 	# # 		x = x * x
-	# 				# 	# # 		n = (n - 1) / 2
-	# 				# 	# # return x * y
+		# 			m = cgutils.alloca_once_value(builder, n)
 
-	# 					builder.branch(pow_end)
-	# 				builder.position_at_end(pow_end)
+		# 			builder.branch(pow_body)
+		# 			with builder.goto_block(pow_body):
+		# 				with builder.if_then(builder.icmp_signed('>', builder.load(m), one_i)):
+		# 					builder.store(sub_(builder, [builder.load(m), one_i]), m)
 
-	# 		return out._getvalue()
-	# 	return pow(*intervals)
+		# 					builder.branch(pow_body)
+
+		# 				out.lo = zero
+		# 				out.hi = zero
+
+
+
+		# 			# 	# # n = 1
+		# 			# 	# # x = interval(self.lo, self.hi)
+		# 			# 	# 	# x = 1 / self
+		# 			# 	# 	# n = -n
+
+		# 			# 	# # while n > 1:
+		# 			# 	# # 	if n % 2 == 0:
+		# 			# 	# # 		x = x * x
+		# 			# 	# # 		n = n / 2
+		# 			# 	# # 	else:
+		# 			# 	# # 		y = x * y
+		# 			# 	# # 		x = x * x
+		# 			# 	# # 		n = (n - 1) / 2
+		# 			# 	# # return x * y
+
+		# 				builder.branch(pow_end)
+		# 			builder.position_at_end(pow_end)
+
+		# 	return out._getvalue()
+		# return pow(*intervals)
 
 
 
@@ -1309,8 +1309,8 @@ def interval_factory(interval, interval_t):
 					with builder.if_else(split_zero) as (true, false):
 						#return [max(f.lo % g, -g), min(f.hi % g, g)]
 						with true:
-							out.lo = max_(builder, [g_neg, f.lo])
-							out.hi = min_(builder, [g_pos, f.hi])
+							out.lo = max_(builder, [g_neg, lo])
+							out.hi = min_(builder, [g_pos, hi])
 						with false:
 							modulo_width = builder.and_(builder.fcmp_unordered('<', width, g_pos),
 														builder.fcmp_unordered('<=', lo, hi))
