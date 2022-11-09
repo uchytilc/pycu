@@ -38,7 +38,8 @@ def compile_program(program, options = (c_char_p * 0)()):
 
 def create_program(src, header_src = None, header_names = None, name = None):
 	program = nvrtcProgram()
-	err = nvrtcCreateProgram(program, src, name, len(header_src) if header_src else 0, header_src, header_names)
+
+	err = nvrtcCreateProgram(program, src, name, len(header_src), header_src, header_names)
 	check_nvrtc_error_either(err, 'nvrtcCreateProgram error', program)
 
 	return program

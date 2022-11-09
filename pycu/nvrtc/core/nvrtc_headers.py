@@ -73,7 +73,9 @@ limits_h = climits = """
 
 stddef_h = """
 	#pragma once
+
 	#include <climits>
+
 	typedef unsigned long size_t;
 	typedef   signed long ptrdiff_t;
 """
@@ -81,6 +83,7 @@ stddef_h = """
 
 stdio_h = """
 	#pragma once
+
 	#include <stddef.h>
 
 	#define FILE int
@@ -257,6 +260,7 @@ stdio_h = """
 
 stdint_h = '''
 #pragma once
+
 #include <climits>
 
 //namespace __jitify_stdint_ns {
@@ -318,7 +322,7 @@ typedef unsigned long      uintptr_t; //optional
 
 
 math_constants_h = """
-#if !defined(__MATH_CONSTANTS_H__)
+#ifndef __MATH_CONSTANTS_H__
 #define __MATH_CONSTANTS_H__
 
 /* single precision constants */
@@ -423,10 +427,9 @@ math_constants_h = """
 #endif /* !__MATH_CONSTANTS_H__ */
 """
 
-nvrtc_headers = {"limits.h":limits_h,
-				 "climits":climits,
+nvrtc_headers = {"climits":climits,
+				 # "limits_h":limits_h,
 				 "stddef.h":stddef_h,
 				 "stdio.h":stdio_h,
 				 "stdint.h":stdint_h,
-				 "stdint":stdint_h,
 				 "math_constants.h":math_constants_h}

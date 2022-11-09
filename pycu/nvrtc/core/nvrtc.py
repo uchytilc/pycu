@@ -224,7 +224,6 @@ class NVRTCPtr:
 
 class NVRTC(NVRTCPtr):
 	def __init__(self, source, *, headers = {}, name = ""):
-
 		# # include_dir = "/usr/local/cuda/include/"
 		# I = [os.getcwd(),
 		# 	 os.path.dirname(os.path.realpath(__file__))] + I
@@ -233,19 +232,14 @@ class NVRTC(NVRTCPtr):
 		source = source.encode('utf8')
 		name = name.encode('utf8')
 
-		header_src, header_names = prepare_headers(headers)
+		#note: header names are the names exaclty how they appear in the c++ files
+		header_names = (c_char_p * len(headers))(*[c_char_p(name.encode('utf8')) for name in headers.keys()])
+		header_src   = (c_char_p * len(headers))(*[c_char_p(header.encode('utf8')) for header in headers.values()])
 
 		handle = create_program(source, header_src, header_names, name)
 		weakref.finalize(self, destroy_program, handle)
 
 		super().__init__(handle)
-
-def prepare_headers(headers):
-	#note: header names are the names exaclty how they appear in the c++ files
-	header_names = (c_char_p * len(headers))(*[c_char_p(name.encode('utf8')) for name in headers.keys()])
-	header_src   = (c_char_p * len(headers))(*[c_char_p(header.encode('utf8')) for header in headers.values()])
-
-	return header_names, header_src
 
 
 

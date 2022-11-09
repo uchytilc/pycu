@@ -72,8 +72,8 @@ def compile_source(sources, entry_points, nvrtc_options = {}, libcudadert = Fals
 
 	module = jitify.compile()
 
-	# #note: save module to prevent it from being garbage collected
-	# context_manager.add_module(module)
+	#note: save module to prevent it from being garbage collected
+	context_manager.add_module(module)
 
 	kernels = []
 	for entry in entry_points:
@@ -81,6 +81,10 @@ def compile_source(sources, entry_points, nvrtc_options = {}, libcudadert = Fals
 
 	if len(kernels) == 1:
 		kernels = kernels[0]
+
+	if context_manager.get_current():
+		return kernels
+
 	return kernels, module
 
 def compile_file(path, *args, **kwargs):

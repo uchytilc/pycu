@@ -3,7 +3,7 @@ from ..driver import (CU_JIT_INFO_LOG_BUFFER, CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
 						 CU_JIT_INPUT_OBJECT, CU_JIT_INPUT_PTX, CU_JIT_INPUT_LIBRARY, CU_JIT_INPUT_CUBIN, CU_JIT_INPUT_FATBINARY)
 
 from ..driver.core import module_load_data, module_get_function, Module, Linker
-from ..nvrtc.core import NVRTC
+from ..nvrtc.core import NVRTC, nvrtc_headers
 from ..nvvm.core import NVVM
 from ..utils import open_file, generate_hash
 
@@ -172,7 +172,7 @@ class Jitify:
 		if not isinstance(name_expressions, (list, tuple)):
 			name_expressions = [name_expressions]
 
-		nvrtc = NVRTC(source, name = name) #I = nvrtc_options.get('I', [])
+		nvrtc = NVRTC(source, name = name, headers = nvrtc_headers) #I = nvrtc_options.get('I', [])
 
 		for name_expression in name_expressions:
 			if name_expression:

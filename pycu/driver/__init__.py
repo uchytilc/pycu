@@ -659,7 +659,7 @@ def thread_exchange_stream_capture_mode(mode):
 
 #EVENT MANAGEMENT
 def event_create(flags = 0):
-	event = CUvevent()
+	event = CUevent()
 	err = cuEventCreate(byref(event), flags)
 	check_driver_error_either(err, "cuEventCreate error")
 

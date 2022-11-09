@@ -113,6 +113,7 @@ class CuBuffer:
 		nbytes = min(nbytes, self.nbytes)
 		args = [get_handle(dst), self.handle, nbytes] # + ctypes.c_uint64(offset)
 		memcpy = memcpy_dtoh
+
 		if stream:
 			args.append(stream.handle)
 			memcpy = memcpy_dtoh_async
