@@ -951,12 +951,65 @@ def API_PROTOTYPES_11070():
 
 	alias = {}
 
-	api_11061, alias_11061 = API_PROTOTYPES_11061()
+	api_11070, alias_11070 = API_PROTOTYPES_11061()
 
-	api.update(api_11061)
-	alias.update(alias_11061)
+	api.update(api_11070)
+	alias.update(alias_11070)
 
 	return api, alias
+
+def API_PROTOTYPES_11071():
+	api = {}
+
+	alias = {}
+
+	api_11071, alias_11071 = API_PROTOTYPES_11070()
+
+	api.update(api_11071)
+	alias.update(alias_11071)
+
+	return api, alias
+
+def API_PROTOTYPES_11080():
+	api = {}
+
+	alias = {}
+
+	api_11080, alias_11080 = API_PROTOTYPES_11071()
+
+	api.update(api_11080)
+	alias.update(alias_11080)
+
+	return api, alias
+
+def API_PROTOTYPES_12000():
+	api = {}
+
+	alias = {}
+
+	api_12000, alias_12000 = API_PROTOTYPES_11080()
+
+	api.update(api_12000)
+	alias.update(alias_12000)
+
+	return api, alias
+
+def API_PROTOTYPES_12001():
+	api = {}
+
+	alias = {}
+
+	api_12001, alias_12001 = API_PROTOTYPES_12000()
+
+	api.update(api_12001)
+	alias.update(alias_12001)
+
+	return api, alias
+
+
+
+
+
 
 
 #note: used to determine which API_PROTOTYPE to load. Calling cuDriverGetVersion does not require initializing the driver
@@ -987,4 +1040,13 @@ API_PROTOTYPES = { 8000:API_PROTOTYPES_08000,
 				  11052:API_PROTOTYPES_11052,
 				  11060:API_PROTOTYPES_11060,
 				  11061:API_PROTOTYPES_11061,
-				  11070:API_PROTOTYPES_11070}
+				  11070:API_PROTOTYPES_11070,
+				  11071:API_PROTOTYPES_11071,
+				  11080:API_PROTOTYPES_11080,
+				  12000:API_PROTOTYPES_12000,
+				  12001:API_PROTOTYPES_12001}
+
+
+# CUDA Toolkit 12.0.1 (January 2023), Versioned Online Documentation
+# CUDA Toolkit 12.0.0 (December 2022), Versioned Online Documentation
+# CUDA Toolkit 11.8.0 (October 2022), Versioned Online Documentation

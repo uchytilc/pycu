@@ -10,9 +10,6 @@ import string
 
 _driver_lock = threading.Lock()
 
-# import platform
-# print(platform.architecture())
-
 def find_driver():
 	#installed at GPU driver location
 
