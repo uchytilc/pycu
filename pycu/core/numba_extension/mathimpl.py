@@ -3,8 +3,7 @@ try:
     from numba.cuda.cudaimpl import (lower as cuda_lower)
     from numba.core.typing.templates import signature
     from numba.cuda import libdevice as numba_libdevice
-    from llvmlite.llvmpy.core import Type
-
+    from llvmlite.ir import Type
 
     # from numba.cuda.cudadecl import registry as decl_registry
     from numba.cuda.cudaimpl import registry as impl_registry
