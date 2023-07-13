@@ -58,11 +58,16 @@ def get_cuda_pathvar():
 def get_cuda_dir():
 	cuda_dir = os.environ.get('CUDA_HOME', '')
 	if not cuda_dir:
-		cuda_dir = os.environ.get('CUDA_PATH', '')
-		#TO DO
-			#look for version specific cuda paths
-		# if not cuda_dir:
-			# cuda_dir= os.environ.get('CUDA_PATH_V11_0', '')
+		# cuda_dir = os.environ.get('CUDA_PATH', '')
+
+		if not cuda_dir:
+			#for version in [...]
+				# cuda_dir= os.environ.get(f"CUDA_PATH_V{version}"", '')
+			for var, path in os.environ.items():
+				if var[:len('CUDA_PATH')] == 'CUDA_PATH':
+					cuda_dir = path
+					break
+
 	return cuda_dir
 
 def get_file_candidates(paths, names):
