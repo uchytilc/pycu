@@ -32,7 +32,7 @@ If you want to import everything import pycu
 import pycu
 ```
 
-pycu also has its own "core" which contains Jitity, a compiler that uses NVRTC and NVVM to jit compile kernel functions.
+pycu also has its own "core" which contains Jitify, a compiler that uses NVRTC and NVVM to jit compile kernel functions.
 
 ```
 from pycu import core as pycu
